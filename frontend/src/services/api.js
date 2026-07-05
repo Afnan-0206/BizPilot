@@ -1,6 +1,7 @@
 // API service for BizPilot AI backend
 
-const BASE_URL = '/api';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const BASE_URL = `${API_URL}/api`;
 
 export async function processMessage(message, language = 'en') {
   const response = await fetch(`${BASE_URL}/process`, {
@@ -30,6 +31,6 @@ export async function getLogs() {
 }
 
 export async function healthCheck() {
-  const response = await fetch(`${BASE_URL.replace('/api', '')}/health`);
+  const response = await fetch(`${API_URL}/health`);
   return response.json();
 }
