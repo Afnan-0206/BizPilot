@@ -1,0 +1,139 @@
+{
+  "business": {
+    "name": "SecureVision Systems",
+    "type": "CCTV & Security Installation",
+    "owner": "Rahul Sharma",
+    "phone": "+91 98765 43210",
+    "email": "info@securevision.in",
+    "website": "www.securevision.in",
+    "location": "Bengaluru, Karnataka",
+    "address": "No. 42, 3rd Cross, Koramangala 5th Block, Bengaluru - 560095",
+    "gst": "29ABCDE1234F1Z5",
+    "logo": "SV",
+    "tagline": "Your Safety, Our Priority"
+  },
+  "products": [
+    {
+      "id": "P001",
+      "name": "CCTV Dome Camera",
+      "description": "2MP Full HD Dome Camera with Night Vision, IP66 Weather Resistant",
+      "price": 2500,
+      "unit": "piece",
+      "category": "camera",
+      "aliases": ["dome camera", "dome", "cctv camera", "camera", "cctv"]
+    },
+    {
+      "id": "P002",
+      "name": "CCTV Bullet Camera",
+      "description": "2MP Full HD Bullet Camera with IR Night Vision, 30m Range",
+      "price": 2800,
+      "unit": "piece",
+      "category": "camera",
+      "aliases": ["bullet camera", "bullet", "outdoor camera"]
+    },
+    {
+      "id": "P003",
+      "name": "4 Channel DVR",
+      "description": "4 Channel 1080P DVR Recorder with H.265+ Compression",
+      "price": 6500,
+      "unit": "piece",
+      "category": "recorder",
+      "aliases": ["4 channel dvr", "4ch dvr", "dvr", "4 ch dvr", "4-channel dvr"]
+    },
+    {
+      "id": "P004",
+      "name": "8 Channel DVR",
+      "description": "8 Channel 1080P DVR Recorder with H.265+ Compression",
+      "price": 10500,
+      "unit": "piece",
+      "category": "recorder",
+      "aliases": ["8 channel dvr", "8ch dvr", "8 ch dvr", "8-channel dvr"]
+    },
+    {
+      "id": "P005",
+      "name": "1TB Surveillance Hard Disk",
+      "description": "1TB WD Purple Surveillance HDD, optimized for 24/7 recording",
+      "price": 4200,
+      "unit": "piece",
+      "category": "storage",
+      "aliases": ["hard disk", "hdd", "hard drive", "storage", "1tb", "surveillance hdd", "hard disc"]
+    }
+  ],
+  "services": [
+    {
+      "id": "S001",
+      "name": "Camera Installation",
+      "description": "Professional installation per camera including cabling and mounting",
+      "price": 700,
+      "unit": "per camera",
+      "aliases": ["installation", "install", "fitting", "setup"]
+    },
+    {
+      "id": "S002",
+      "name": "Site Visit Charge",
+      "description": "Technician site visit and assessment (waived if order placed)",
+      "price": 500,
+      "unit": "per visit",
+      "aliases": ["site visit", "visit charge", "assessment"]
+    }
+  ],
+  "tax": {
+    "rate": 0.18,
+    "name": "GST",
+    "description": "18% GST applicable"
+  },
+  "faq": [
+    {
+      "question": "What is your refund policy?",
+      "answer": "We offer a full refund only before installation begins. Once installation is completed, we provide a 1-year service warranty instead of a refund. For defective products before installation, we replace the product at no cost."
+    },
+    {
+      "question": "What warranty do you provide?",
+      "answer": "All cameras and DVR recorders come with a 1-year manufacturer warranty. Our installation work also carries a 1-year service warranty. Extended warranty plans are available."
+    },
+    {
+      "question": "How long does installation take?",
+      "answer": "For small setups (1-4 cameras), installation typically takes 1 working day. Larger installations (5-16 cameras) may take 2-3 days. We schedule at your convenience."
+    },
+    {
+      "question": "What are your payment terms?",
+      "answer": "We require 50% advance payment to confirm the order. The remaining 50% is due after successful installation and testing. We accept cash, bank transfer, UPI, and all major payment methods."
+    },
+    {
+      "question": "What areas do you serve?",
+      "answer": "We serve Bengaluru urban areas and nearby regions including Electronic City, Whitefield, Marathahalli, Koramangala, HSR Layout, Jayanagar, Rajajinagar, Yeshwanthpur, and surrounding areas. Outstation visits attract additional travel charges."
+    },
+    {
+      "question": "Do you provide AMC (Annual Maintenance Contract)?",
+      "answer": "Yes, we offer AMC plans starting from ₹2,000 per year for small setups. AMC includes quarterly maintenance visits, priority support, and discounted repair services."
+    },
+    {
+      "question": "Can I view cameras remotely?",
+      "answer": "Yes! All our DVR systems support remote viewing via mobile app (iDMSS/gDMSS). You can view live footage and playback recordings from anywhere with internet connectivity."
+    },
+    {
+      "question": "How much does a basic home CCTV setup cost?",
+      "answer": "A basic 4-camera home setup (4 dome cameras + 4CH DVR + 1TB HDD + installation) typically costs between ₹22,000 to ₹25,000 including GST. Contact us for a customized quote."
+    }
+  ],
+  "policies": {
+    "refund": "Full refund before installation. Post-installation: 1-year service warranty applies. No cash refund after installation.",
+    "warranty": "1 year on all cameras, DVRs, and installation workmanship.",
+    "payment": "50% advance required. Balance 50% after installation.",
+    "service_area": "Bengaluru urban and nearby areas. Outstation visits: additional travel charges apply.",
+    "installation_time": "1 working day for small setups (1-4 cameras). 2-3 days for larger setups.",
+    "support": "Call +91 98765 43210 for support. WhatsApp support available 9 AM to 7 PM, Mon-Sat."
+  },
+  "terms": [
+    "All prices are exclusive of GST (18%).",
+    "50% advance payment required to confirm order.",
+    "Balance payment due on completion of installation.",
+    "1-year warranty on products and installation workmanship.",
+    "Warranty does not cover physical damage or tampering.",
+    "This quotation is valid for 30 days from the date of issue.",
+    "Prices subject to change without prior notice after quotation expiry.",
+    "Site visit charge of ₹500 is waived if order is confirmed.",
+    "Outstation installation: additional travel/accommodation charges apply.",
+    "SecureVision Systems is not liable for force majeure events."
+  ]
+}
