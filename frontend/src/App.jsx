@@ -56,11 +56,20 @@ export default function App() {
   // Mobile-only UI state
   const [pipelineExpanded, setPipelineExpanded] = useState(false);
   const [docSheetOpen, setDocSheetOpen] = useState(false);
+  const [mobileSheetTab, setMobileSheetTab] = useState('document');
 
   const hasDocument =
     response &&
     (response.intent === 'quote_request' || response.intent === 'invoice_request') &&
     response.generatedOutput?.documentHTML;
+
+  // Auto-default mobile active tab when a new response is loaded
+  useEffect(() => {
+    if (response) {
+      const hasDoc = (response.intent === 'quote_request' || response.intent === 'invoice_request') && response.generatedOutput?.documentHTML;
+      setMobileSheetTab(hasDoc ? 'document' : 'whatsapp');
+    }
+  }, [response]);
 
   // ── Stats refresh ────────────────────────────────────────
   const refreshStats = useCallback(async () => {
@@ -118,16 +127,10 @@ export default function App() {
 
         // Mobile post-processing
         if (isMobile) {
-          const isDoc =
-            result.intent === 'quote_request' || result.intent === 'invoice_request';
-          if (isDoc) {
-            setTimeout(() => {
-              setDocSheetOpen(true);
-              setPipelineExpanded(false);
-            }, 800);
-          } else {
-            setTimeout(() => setPipelineExpanded(false), 2200);
-          }
+          setTimeout(() => {
+            setDocSheetOpen(true);
+            setPipelineExpanded(false);
+          }, 800);
         }
 
         refreshStats();
@@ -380,14 +383,16 @@ export default function App() {
       </nav>
 
       {/* ── Mobile document bottom sheet ──────────────────── */}
-      {isMobile && docSheetOpen && hasDocument && (
+      {isMobile && docSheetOpen && response && (
         <>
           <div className="sheet-backdrop" onClick={() => setDocSheetOpen(false)} />
           <div className="sheet-panel">
             <div className="sheet-handle" />
+            
+            {/* Header */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px 8px' }}>
               <div style={{ fontFamily: 'var(--font-mono)', fontSize: 12, fontWeight: 700, color: 'var(--cyan)' }}>
-                📄 DOCUMENT PREVIEW
+                {mobileSheetTab === 'document' ? '📄 DOCUMENT PREVIEW' : '📱 WHATSAPP PREVIEW'}
               </div>
               <button
                 onClick={() => setDocSheetOpen(false)}
@@ -396,8 +401,38 @@ export default function App() {
                 <X size={18} />
               </button>
             </div>
-            <div style={{ padding: '0 16px 24px' }}>
-              <DocumentPreview response={response} />
+
+            {/* Tab Selector Switcher (shown only when document exists) */}
+            {hasDocument && (
+              <div style={{ display: 'flex', gap: 8, padding: '8px 16px', borderBottom: '1px solid var(--border-subtle)', background: 'var(--bg-void)' }}>
+                <button
+                  className={`tab-btn${mobileSheetTab === 'document' ? ' active' : ''}`}
+                  onClick={() => setMobileSheetTab('document')}
+                  style={{ flex: 1, justifyContent: 'center', minHeight: 36 }}
+                >
+                  Document
+                </button>
+                <button
+                  className={`tab-btn${mobileSheetTab === 'whatsapp' ? ' active' : ''}`}
+                  onClick={() => setMobileSheetTab('whatsapp')}
+                  style={{ flex: 1, justifyContent: 'center', minHeight: 36 }}
+                >
+                  WhatsApp Message
+                </button>
+              </div>
+            )}
+
+            {/* Content area */}
+            <div style={{ padding: '12px 16px 24px', overflowY: 'auto', maxHeight: 'calc(80vh - 100px)' }}>
+              {mobileSheetTab === 'document' && hasDocument ? (
+                <DocumentPreview response={response} />
+              ) : (
+                <WhatsAppPreview
+                  response={response}
+                  originalMessage={[...messages].reverse().find((m) => m.type === 'user')?.text || ''}
+                  language={language}
+                />
+              )}
             </div>
           </div>
         </>
