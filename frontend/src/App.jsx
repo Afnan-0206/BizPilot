@@ -177,7 +177,7 @@ export default function App() {
                   <span style={{ color: 'var(--cyan)' }}> AI</span>
                 </div>
                 <div style={{ fontSize: 9, color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', letterSpacing: '1.5px' }}>
-                  AI EMPLOYEE COPILOT
+                  Customer Messages → Quotes & Invoices
                 </div>
               </div>
             </div>

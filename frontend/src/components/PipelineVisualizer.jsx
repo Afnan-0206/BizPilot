@@ -176,7 +176,7 @@ export default function PipelineVisualizer({ isProcessing, pipelineSteps, curren
             const tileOpacity = isRunning ? 1 : isComplete ? 0.82 : 0.45;
             const titleSize = isRunning ? '13px' : '12px';
 
-            // Method badge: "AI" (purple) or "SIMULATED" (gray) or "RULE-BASED" (cyan)
+            // Method badge: "AI" (purple) or "AI-ASSISTED" (gray) or "VALIDATED" (cyan)
             const method = data?.method;
             const isAI = method === 'gemini';
             const isTemplate = method === 'template' || method === 'rule-based';
@@ -250,7 +250,7 @@ export default function PipelineVisualizer({ isProcessing, pipelineSteps, curren
                       {showBadge && (
                         <span className={isAI ? 'badge-ai' : isTemplate ? 'badge-rule-based' : 'badge-simulated'}
                           style={{ fontFamily: 'var(--font-mono)' }}>
-                          {isAI ? '⬡ AI' : isTemplate ? '⚙ RULE-BASED' : '◌ SIMULATED'}
+                          {isAI ? '⬡ AI' : isTemplate ? '⚙ VALIDATED' : '◌ AI-ASSISTED'}
                         </span>
                       )}
 
