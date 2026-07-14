@@ -122,7 +122,7 @@ export default function InteractionLogs({ onRefresh }) {
                   <th>Message</th>
                   <th>Intent</th>
                   <th>Status</th>
-                  <th>Response</th>
+                  <th>Latency</th>
                   <th>Retry</th>
                 </tr>
               </thead>

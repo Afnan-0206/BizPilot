@@ -32,7 +32,7 @@ export default function DocumentPreview({ response }) {
     );
   }
 
-  const { generatedOutput, intent } = response;
+  const { generatedOutput, intent, reviewResult } = response;
   const hasDoc =
     ['quote_request', 'invoice_request'].includes(intent) && generatedOutput?.documentHTML;
 
@@ -203,6 +203,36 @@ export default function DocumentPreview({ response }) {
           ))}
         </div>
       </div>
+
+      {/* Verified strip */}
+      {(reviewResult?.approved || response.verified) && (
+        <div style={{
+          padding: '8px 12px',
+          borderTop: '1px solid var(--border-subtle)',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          flexWrap: 'wrap', gap: 4,
+          background: 'rgba(52,211,153,0.04)',
+        }}>
+          <span className="verified-banner">✓ VERIFIED BY REVIEW AGENT</span>
+          {reviewResult?.checks && (
+            <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+              {Object.entries(reviewResult.checks).map(([k, v]) =>
+                v ? (
+                  <span key={k} style={{
+                    fontSize: 9, color: 'var(--success)',
+                    fontFamily: 'var(--font-mono)',
+                    background: 'rgba(52,211,153,0.06)',
+                    border: '1px solid rgba(52,211,153,0.15)',
+                    padding: '2px 4px', borderRadius: '6px',
+                  }}>
+                    {k.replace('_verified', '')}
+                  </span>
+                ) : null
+              )}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

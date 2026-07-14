@@ -404,22 +404,26 @@ export default function WhatsAppPreview({ response, originalMessage, language = 
             }}>
               Opens WhatsApp with the<br />message ready to send
             </div>
-            <button
-              id="wa-share-btn"
-              className="btn-primary"
-              onClick={() => setShareModalOpen(true)}
-              style={{
-                fontSize: 11,
-                padding: '7px 14px',
-                minHeight: 36,
-                background: 'linear-gradient(135deg, #075e54 0%, #128c7e 100%)',
-                gap: 6,
-                flexShrink: 0,
-              }}
-            >
-              <Share2 size={13} />
-              Share on WhatsApp
-            </button>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+              <button
+                id="wa-share-btn"
+                className="btn-primary"
+                onClick={() => setShareModalOpen(true)}
+                style={{
+                  fontSize: 11,
+                  padding: '7px 14px',
+                  minHeight: 36,
+                  background: 'linear-gradient(135deg, #075e54 0%, #128c7e 100%)',
+                  gap: 6,
+                }}
+              >
+                <Share2 size={13} />
+                Share on WhatsApp
+              </button>
+              <div style={{ fontSize: 9, color: 'var(--success)', fontFamily: 'var(--font-mono)', textAlign: 'center' }}>
+                Ready to send on WhatsApp
+              </div>
+            </div>
           </div>
         )}
 

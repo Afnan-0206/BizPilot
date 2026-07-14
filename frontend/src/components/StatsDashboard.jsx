@@ -197,6 +197,7 @@ export default function StatsDashboard({ stats, onRefresh }) {
               { label: 'Intake Agent',     sub: 'Intent classification', icon: '🧠', val: total },
               { label: 'Context Agent',    sub: 'Data enrichment',       icon: '🗄️', val: total },
               { label: 'Generation Agent', sub: 'Content generation',    icon: '⚡', val: total },
+              { label: 'Approval Agent',   sub: 'Validates limits & approval flow', icon: '⚖️', val: total },
               { label: 'Review Agent',     sub: 'Self-verification',     icon: '🛡️', val: stats.totalVerified },
             ].map((a) => (
               <div key={a.label} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
