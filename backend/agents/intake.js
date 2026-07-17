@@ -261,7 +261,7 @@ async function runIntakeAgent(message) {
     method,
     duration: Date.now() - startTime,
     output: result,
-    summary: `Intent: ${result.intent} | Items: ${result.extracted_entities.items.join(', ') || 'none'} | Service: ${result.extracted_entities.service_required}`
+    summary: `Intent: ${result.intent} | Extracted: ${result.extracted_entities.items.join(', ') || 'none'}${result.extracted_entities.quantities && result.extracted_entities.quantities.length ? ' (qty: ' + result.extracted_entities.quantities.join(', ') + ')' : ''}${result.extracted_entities.customer_name ? ', Customer: ' + result.extracted_entities.customer_name : ''}`
   };
 }
 

@@ -34,9 +34,9 @@ export default function InteractionLogs({ onRefresh }) {
   });
 
   const exportCSV = () => {
-    const headers = ['ID', 'Timestamp', 'Message', 'Intent', 'Status', 'Review', 'ResponseTime', 'Regenerated'];
+    const headers = ['ID', 'Timestamp', 'Message', 'Intent', 'Status', 'Review', 'Latency', 'StockVerified', 'Regenerated'];
     const rows = filtered.map((l) => [
-      l.id, l.timestamp, `"${l.message}"`, l.intent, l.status, l.reviewResult, `${l.responseTime}ms`, l.regenerated,
+      l.id, l.timestamp, `"${l.message}"`, l.intent, l.status, l.reviewResult, `${l.responseTime}ms`, l.stockVerified !== undefined ? (l.stockVerified ? 'Yes' : 'No') : 'N/A', l.regenerated,
     ]);
     const csv = [headers, ...rows].map((r) => r.join(',')).join('\n');
     const blob = new Blob([csv], { type: 'text/csv' });
@@ -123,6 +123,7 @@ export default function InteractionLogs({ onRefresh }) {
                   <th>Intent</th>
                   <th>Status</th>
                   <th>Latency</th>
+                  <th style={{ textAlign: 'center' }}>Stock Verified</th>
                   <th>Retry</th>
                 </tr>
               </thead>
@@ -159,6 +160,9 @@ export default function InteractionLogs({ onRefresh }) {
                       </td>
                       <td style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: log.responseTime < 2000 ? 'var(--success)' : 'var(--warning)', fontVariantNumeric: 'tabular-nums' }}>
                         {log.responseTime}ms
+                      </td>
+                      <td style={{ fontFamily: 'var(--font-mono)', fontSize: 11, textAlign: 'center' }}>
+                        {log.stockVerified !== undefined ? (log.stockVerified ? '✓' : '✗') : '—'}
                       </td>
                       <td>
                         <span className={`badge ${log.regenerated ? 'badge-purple' : 'badge-cyan'}`} style={{ fontSize: 9 }}>

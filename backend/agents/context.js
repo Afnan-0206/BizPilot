@@ -56,7 +56,63 @@ function computeSourcesUsed(intent, matchedItems, relevantFAQs, originalMessage)
 }
 
 // ── Product Matching ──────────────────────────────────────────────────────────
-function matchProducts(items, quantities) {
+function matchProductsWithCatalog(items, quantities, catalog) {
+  const matched = [];
+  for (let i = 0; i < items.length; i++) {
+    const itemName = items[i].toLowerCase().trim();
+    const qty = quantities[i] || 1;
+
+    // MVP Alias mapping
+    let targetName = null;
+    if (/cctv|camera|cameras/i.test(itemName)) {
+      targetName = "CCTV Dome Camera";
+    } else if (/dvr|recorder/i.test(itemName)) {
+      targetName = "DVR 4 Channel";
+    } else if (/cable|wire/i.test(itemName)) {
+      targetName = "CCTV Cable Roll";
+    } else if (/installation|install|fitting/i.test(itemName)) {
+      targetName = "Installation Service";
+    }
+
+    let found = null;
+    if (targetName) {
+      found = catalog.find(p => p.name.toLowerCase() === targetName.toLowerCase());
+    }
+
+    if (!found) {
+      // Fallback search in catalog using aliases or name
+      found = catalog.find(p =>
+        (p.aliases && p.aliases.some(alias => itemName.includes(alias.toLowerCase()) || alias.toLowerCase().includes(itemName))) ||
+        p.name.toLowerCase().includes(itemName)
+      );
+    }
+
+    if (found) {
+      const type = found.category === 'Service' || found.stock === null || found.stock === undefined ? 'service' : 'product';
+      const matchedItem = {
+        id: found.id,
+        name: found.name,
+        description: found.description || '',
+        price: found.price,
+        gst: found.gst || 18,
+        warranty: found.warranty || '1 year',
+        quantity: qty,
+        type,
+        lineTotal: found.price * qty,
+        stockQty: found.stock,
+        lowStockThreshold: found.lowStockThreshold
+      };
+      matched.push(matchedItem);
+    }
+  }
+  return matched;
+}
+
+function matchProducts(items, quantities, inventoryCatalog = null) {
+  if (inventoryCatalog && inventoryCatalog.length > 0) {
+    return matchProductsWithCatalog(items, quantities, inventoryCatalog);
+  }
+
   const matched = [];
 
   for (let i = 0; i < items.length; i++) {
@@ -111,19 +167,19 @@ function matchProducts(items, quantities) {
  *
  * Services (no stockQty in seed, type==='service') are always 'ok'.
  */
-function computeStockNotes(matchedItems) {
+function computeStockNotes(matchedItems, isInventoryDashboard = false) {
   const notes = [];
   for (const item of matchedItems) {
     if (item.type === 'service') continue;             // labour — no stock tracking
-    const available = getStockQty(item.id);
-    if (available === null) continue;                  // unknown product id
+    const available = isInventoryDashboard ? item.stockQty : getStockQty(item.id);
+    if (available === null || available === undefined) continue;
     const requested = item.quantity;
     const remaining = available - requested;
 
     let status;
     if (requested > available) {
       status = 'insufficient';
-    } else if (remaining <= LOW_STOCK_THRESHOLD) {
+    } else if (remaining <= (item.lowStockThreshold || LOW_STOCK_THRESHOLD)) {
       status = 'low_after_order';
     } else {
       status = 'ok';
@@ -179,7 +235,7 @@ function addInstallationIfNeeded(matchedItems, serviceRequired) {
 }
 
 // ── Main Export ───────────────────────────────────────────────────────────────
-async function runContextAgent(intakeOutput, originalMessage) {
+async function runContextAgent(intakeOutput, originalMessage, inventoryCatalog = null, inventorySnapshot = null, businessContext = null) {
   const startTime = Date.now();
   const { intent, extracted_entities } = intakeOutput;
   const { items = [], quantities = [], customer_name = '', customer_phone = '', service_required = false } = extracted_entities;
@@ -188,8 +244,10 @@ async function runContextAgent(intakeOutput, originalMessage) {
   let relevantFAQs = [];
   let contextType = 'general';
 
+  const isInventoryDashboard = !!(inventoryCatalog && inventoryCatalog.length > 0);
+
   if (intent === 'quote_request' || intent === 'invoice_request') {
-    matchedItems = matchProducts(items, quantities);
+    matchedItems = matchProducts(items, quantities, inventoryCatalog);
     matchedItems = addInstallationIfNeeded(matchedItems, service_required);
     contextType = intent === 'quote_request' ? 'quotation' : 'invoice';
   } else if (intent === 'customer_query') {
@@ -207,8 +265,9 @@ async function runContextAgent(intakeOutput, originalMessage) {
   }
 
   // ── Stock Availability Check ───────────────────────────────────────────────
-  const stockNotes = computeStockNotes(matchedItems);
-  const hasStockIssue = stockNotes.some(n => n.status === 'insufficient');
+  const stockNotes = computeStockNotes(matchedItems, isInventoryDashboard);
+  const insufficientItems = stockNotes.filter(n => n.status === 'insufficient');
+  const hasStockIssue = insufficientItems.length > 0;
   const hasLowStock   = stockNotes.some(n => n.status === 'low_after_order');
 
   // ── Returning-Customer Personalization ─────────────────────────
@@ -235,12 +294,21 @@ async function runContextAgent(intakeOutput, originalMessage) {
   }
 
   // ── Multi-Source Context Labeling ──────────────────────────────
-  const sourcesUsed = computeSourcesUsed(intent, matchedItems, relevantFAQs, originalMessage);
+  let sourcesUsed = computeSourcesUsed(intent, matchedItems, relevantFAQs, originalMessage);
+  if (isInventoryDashboard) {
+    sourcesUsed = sourcesUsed.map(src => src === 'Product Catalog' ? 'Inventory Catalog' : src);
+    if (!sourcesUsed.includes('Inventory Catalog') && matchedItems.length > 0) {
+      sourcesUsed.push('Inventory Catalog');
+    }
+  }
 
   // Look up any matching Service Interaction Log entries for the customer
   const interactionHistory = (seedData.serviceInteractionLog || []).filter(log =>
     isNamedCustomer && log.customer.toLowerCase().includes(customer_name.toLowerCase())
   );
+
+  const priceSource = isInventoryDashboard ? 'Inventory Dashboard' : 'Default Catalog';
+  const stockStatusText = hasStockIssue ? 'Insufficient' : hasLowStock ? 'Low Stock' : 'Available';
 
   // ── Assemble enriched context ─────────────────────────────────────────────
   const enrichedContext = {
@@ -259,7 +327,7 @@ async function runContextAgent(intakeOutput, originalMessage) {
     tax: seedData.tax,
     originalMessage,
     service_required,
-    allProducts: seedData.products,
+    allProducts: isInventoryDashboard ? inventoryCatalog : seedData.products,
     allServices: seedData.services,
     // Personalization
     loyaltyDiscount,
@@ -273,6 +341,9 @@ async function runContextAgent(intakeOutput, originalMessage) {
     stockNotes,
     hasStockIssue,
     hasLowStock,
+    stockStatusText,
+    priceSource,
+    stockVerified: true,
   };
 
   const loyaltyNote = loyaltyDiscount?.applicable
@@ -287,11 +358,13 @@ async function runContextAgent(intakeOutput, originalMessage) {
       ? ` | LOW STOCK after order`
       : '';
 
+  const dashboardSrcNote = isInventoryDashboard ? ` | Stock verified: ${stockStatusText} | Price source: ${priceSource}` : '';
+
   return {
     agent: 'ContextAgent',
     duration: Date.now() - startTime,
     output: enrichedContext,
-    summary: `Sources: ${sourcesUsed.join(', ')} | Items: ${matchedItems.length}${loyaltyNote}${assumptionNote ? ` | Note: ${assumptionNote}` : ''}${stockNote}`,
+    summary: `Sources: ${sourcesUsed.join(', ')} | Items: ${matchedItems.length}${loyaltyNote}${assumptionNote ? ` | Note: ${assumptionNote}` : ''}${isInventoryDashboard ? '' : stockNote}${dashboardSrcNote}`,
   };
 }
 

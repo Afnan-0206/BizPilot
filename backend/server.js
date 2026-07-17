@@ -97,7 +97,7 @@ app.post('/api/process', async (req, res) => {
     console.log(`[${requestId}] ► Context Agent starting...`);
     const contextDelay = Math.floor(300 + Math.random() * 200); // ~300-500ms
     await sleep(contextDelay);
-    const contextResult = await runContextAgent(intakeResult.output, message.trim());
+    const contextResult = await runContextAgent(intakeResult.output, message.trim(), req.body.inventoryCatalog, req.body.inventorySnapshot, req.body.businessContext);
     contextResult.duration = contextDelay + (contextResult.duration || 0);
     pipelineSteps.push(contextResult);
     console.log(`[${requestId}] ✓ Context Agent: ${contextResult.summary}`);
@@ -206,7 +206,10 @@ app.post('/api/process', async (req, res) => {
       regenerated,
       verified: reviewResult.output.approved,
       totalDuration,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      stockVerified: contextResult.output.stockVerified || false,
+      stockStatus: contextResult.output.stockStatusText || '',
+      priceSource: contextResult.output.priceSource || ''
     };
 
     // ── Update Stats ──────────────────────────────────────────────────────
@@ -229,7 +232,11 @@ app.post('/api/process', async (req, res) => {
       discountApplied: finalGenerationResult.output?.discountApplied || false,
       discountAmount: finalGenerationResult.output?.discountAmount || 0,
       sourcesUsed: contextResult.output.sourcesUsed || [],
-      approvalStatus: finalApprovalResult.output?.status || 'skipped'
+      approvalStatus: finalApprovalResult.output?.status || 'skipped',
+      stockVerified: contextResult.output.stockVerified || false,
+      stockStatus: contextResult.output.stockStatusText || '',
+      priceSource: contextResult.output.priceSource || '',
+      product: contextResult.output.matchedItems && contextResult.output.matchedItems[0] ? contextResult.output.matchedItems[0].name : ''
     });
 
     // Keep only last 100 logs

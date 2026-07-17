@@ -216,7 +216,7 @@ export default function ChatPanel({ messages, onSend, isProcessing, demoMessages
           paddingLeft: 2,
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         }}>
-          <span>ENTER to send · SHIFT+ENTER for newline</span>
+          <span>ENTER to send · SHIFT+ENTER for newline · <span style={{ color: 'var(--accent)' }}>Tip: You can dictate requests using Wispr Flow.</span></span>
           {language !== 'en' && (
             <span style={{ color: 'var(--accent)', fontSize: 9 }}>
               Reply in {LANGUAGES.find(l => l.code === language)?.full}

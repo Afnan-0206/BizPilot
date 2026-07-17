@@ -1,13 +1,24 @@
-// API service for BizPilot AI backend
+import { getInventorySnapshot } from '../lib/inventoryStore';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 const BASE_URL = `${API_URL}/api`;
 
 export async function processMessage(message, language = 'en') {
+  const snapshot = getInventorySnapshot();
   const response = await fetch(`${BASE_URL}/process`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ message, language }),
+    body: JSON.stringify({
+      message,
+      language,
+      inventoryCatalog: snapshot.products,
+      inventorySnapshot: snapshot,
+      businessContext: {
+        companyName: "SecureVision Systems",
+        source: "Inventory Dashboard",
+        stockAware: true
+      }
+    }),
   });
 
   if (!response.ok) {

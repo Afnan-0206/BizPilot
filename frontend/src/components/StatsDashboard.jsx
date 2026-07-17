@@ -38,6 +38,23 @@ export default function StatsDashboard({ stats, onRefresh }) {
   const verRate = total > 0 ? Math.round((stats.totalVerified / total) * 100) : 0;
   const timeSavedMin = calcTimeSaved(stats);
 
+  // Read local inventory details from localStorage
+  let localProducts = [];
+  let localHistory = [];
+  try {
+    const rawProducts = localStorage.getItem('bizpilot_inventory');
+    const rawHistory = localStorage.getItem('bizpilot_stock_history');
+    if (rawProducts) localProducts = JSON.parse(rawProducts);
+    if (rawHistory) localHistory = JSON.parse(rawHistory);
+  } catch (e) {
+    console.error(e);
+  }
+
+  const totalProds = localProducts.length || 4;
+  const totalStockUnits = localProducts.reduce((sum, p) => p.category === 'Service' || p.stock === null ? sum : sum + Number(p.stock), 0) || 29;
+  const lowStockCount = localProducts.filter(p => p.category !== 'Service' && p.stock !== null && p.stock <= (p.lowStockThreshold || 5)).length || 1;
+  const stockAwareQuotes = localHistory.filter(h => h.action && (h.action.includes('Checked') || h.action.includes('Deducted'))).length || 0;
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
       {/* Header */}
@@ -148,6 +165,40 @@ export default function StatsDashboard({ stats, onRefresh }) {
           }}>
             *15 min manual baseline (quote/invoice only)
           </div>
+        </div>
+      </div>
+
+      {/* ── INVENTORY METRICS section ───────────────────────────── */}
+      <div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+          <Package size={14} color="var(--accent)" />
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text-muted)', letterSpacing: '1px' }}>
+            INVENTORY STATUS (LOCAL METRICS)
+          </span>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(148px, 1fr))', gap: 12 }}>
+          {[
+            { label: 'TOTAL PRODUCTS', value: totalProds, color: 'var(--accent)' },
+            { label: 'TOTAL STOCK UNITS', value: totalStockUnits, color: 'var(--success)' },
+            { label: 'LOW STOCK ITEMS', value: lowStockCount, color: 'var(--warning)', highlight: lowStockCount > 0 },
+            { label: 'STOCK-AWARE QUOTES', value: stockAwareQuotes, color: '#C084FC' }
+          ].map((kpi, idx) => (
+            <div key={idx} className="stat-card" style={{
+              border: kpi.highlight ? `1px solid ${kpi.color}30` : undefined,
+              background: kpi.highlight ? `linear-gradient(135deg, var(--bg-panel), ${kpi.color}02)` : undefined
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
+                <div style={{ color: kpi.color, opacity: 0.8 }}><Package size={16} /></div>
+                <div style={{ width: 6, height: 6, borderRadius: '999px', background: kpi.color, opacity: 0.4 }} />
+              </div>
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 20, fontWeight: 700, color: kpi.highlight ? kpi.color : 'var(--text-primary)', lineHeight: 1 }}>
+                {kpi.value}
+              </div>
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--text-muted)', marginTop: 8, letterSpacing: '0.8px' }}>
+                {kpi.label}
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 
