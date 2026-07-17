@@ -87,6 +87,12 @@ async function translateWithGemini(text, targetLanguage) {
   const langName = langNames[targetLanguage];
   if (!langName) return text;
 
+  const hasAIKey = process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY !== 'your_api_key_here';
+  if (!hasAIKey) {
+    // Under mock mode, if translation is requested, we do not claim it is Kannada/Hindi if we don't translate it
+    return text;
+  }
+
   const systemPrompt = `You are a professional translator. Translate the following business message to ${langName}.
 Rules:
 - Keep all numbers, currency amounts (₹), document numbers, and proper nouns as-is in standard format
@@ -98,10 +104,14 @@ Rules:
   try {
     const model = getModel(false, systemPrompt);
     const response = await withTimeout(model.generateContent(text));
-    return response.response.text().trim();
+    const translated = response.response.text().trim();
+    if (translated && translated !== text) {
+      return translated;
+    }
+    return text;
   } catch (err) {
-    console.warn('[Generation Agent] Gemini translation failed, using dictionary fallback:', err.message);
-    return translateFallback(text, targetLanguage);
+    console.warn('[Generation Agent] Gemini translation failed, falling back to English:', err.message);
+    return text;
   }
 }
 
@@ -564,9 +574,15 @@ Feel free to ask! — SecureVision Systems`
   }
 
   // Handle multilingual translation if language is not English
+  let actualLanguage = 'en';
   if (language && language !== 'en' && result.humanText) {
-    result.humanText = await translateWithGemini(result.humanText, language);
+    const translatedText = await translateWithGemini(result.humanText, language);
+    if (translatedText && translatedText !== result.humanText) {
+      result.humanText = translatedText;
+      actualLanguage = language;
+    }
   }
+  result.language = actualLanguage;
 
   return {
     agent: 'GenerationAgent',

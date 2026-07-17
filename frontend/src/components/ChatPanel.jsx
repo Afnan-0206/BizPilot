@@ -15,7 +15,7 @@ const LANGUAGES = [
   { code: 'hi', label: 'हिंदी', full: 'Hindi' },
 ];
 
-export default function ChatPanel({ messages, onSend, isProcessing, demoMessages, language, onLanguageChange }) {
+export default function ChatPanel({ messages, onSend, isProcessing, demoMessages, language, onLanguageChange, aiMode }) {
   const [input, setInput] = useState('');
   const bottomRef = useRef(null);
   const textareaRef = useRef(null);
@@ -216,8 +216,8 @@ export default function ChatPanel({ messages, onSend, isProcessing, demoMessages
           paddingLeft: 2,
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         }}>
-          <span>ENTER to send · SHIFT+ENTER for newline · <span style={{ color: 'var(--accent)' }}>Tip: You can dictate requests using Wispr Flow.</span></span>
-          {language !== 'en' && (
+          <span>ENTER to send · SHIFT+ENTER for newline</span>
+          {language !== 'en' && aiMode === 'gemini' && (
             <span style={{ color: 'var(--accent)', fontSize: 9 }}>
               Reply in {LANGUAGES.find(l => l.code === language)?.full}
             </span>
@@ -285,6 +285,11 @@ function Bubble({ msg }) {
           {msg.verified && (
             <span className="verified-banner">
               <CheckCircle size={8} /> VERIFIED
+            </span>
+          )}
+          {msg.language && msg.language !== 'en' && (
+            <span className="badge badge-amber" style={{ textTransform: 'uppercase', fontSize: 8 }}>
+              {msg.language === 'kn' ? 'ಕನ್ನಡ' : 'हिंदी'}
             </span>
           )}
         </div>

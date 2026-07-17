@@ -270,6 +270,7 @@ app.get('/api/stats', (req, res) => {
     // Inventory awareness — in-memory, resets on server restart
     lowStockItems: store.getLowStockItems(),
     allStockLevels: store.getAllStockLevels(),
+    aiMode: process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY !== 'your_api_key_here' ? 'gemini' : 'mock'
   });
 });
 
