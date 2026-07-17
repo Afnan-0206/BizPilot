@@ -303,7 +303,7 @@ function generateDocumentHTML(type, docNumber, customer, business, items, financ
 
 // ─── Quote / Invoice Generator ──────────────────────────────────────────────
 function generateQuoteOrInvoice(context, type) {
-  const { customer, business, matchedItems, tax, terms, loyaltyDiscount } = context;
+  const { customer, business, matchedItems, tax, terms, loyaltyDiscount, stockNotes = [] } = context;
   const docNumber = generateDocNumber(type);
 
   // Recalculate everything cleanly from seed prices
@@ -331,6 +331,16 @@ function generateQuoteOrInvoice(context, type) {
     ? `\n\n💡 *Note:* We've quoted our standard Dome Camera — let us know if you need Bullet Cameras instead.`
     : '';
 
+  // ── Stock shortfall warnings ──────────────────────────────────────────────
+  // Build one line per insufficient item; never block generation.
+  const insufficientItems = stockNotes.filter(n => n.status === 'insufficient');
+  const stockWarningSuffix = insufficientItems.length > 0
+    ? '\n\n' + insufficientItems.map(n => {
+        const shortfall = n.requestedQty - n.availableQty;
+        return `⚠️ *Note:* Only ${n.availableQty} ${n.product}${n.availableQty === 1 ? '' : 's'} currently in stock — the remaining ${shortfall} will need to be back-ordered. We'll confirm the exact delivery timeline.`;
+      }).join('\n')
+    : '';
+
   const humanText = `📋 *${typeLabel} Generated Successfully*
 
 ${typeLabel} No: *${docNumber}*
@@ -348,7 +358,7 @@ ${discountLines}GST (18%): ₹${financials.taxAmount.toLocaleString('en-IN')}
 ───────────────
 
 Payment: 50% advance (₹${Math.round(financials.total / 2).toLocaleString('en-IN')}), balance after installation.
-Valid for 30 days. Warranty: 1 year on all products.${assumptionSuffix}
+Valid for 30 days. Warranty: 1 year on all products.${assumptionSuffix}${stockWarningSuffix}
 
 _Thank you for choosing SecureVision Systems!_`;
 
@@ -366,9 +376,12 @@ _Thank you for choosing SecureVision Systems!_`;
     documentHTML,
     date,
     discountApplied: financials.discountAmount > 0,
-    discountAmount: financials.discountAmount
+    discountAmount: financials.discountAmount,
+    hasStockIssue: insufficientItems.length > 0,
+    stockNotes,
   };
 }
+
 
 // ─── Customer Query Generator ───────────────────────────────────────────────
 async function generateCustomerQueryResponse(context, useAI) {
