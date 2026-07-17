@@ -12,8 +12,8 @@ import { useInventoryStore } from './lib/inventoryStore';
 import { processMessage, getStats } from './services/api';
 
 const DEMO_MESSAGES = [
-  'Need quote for 3 CCTV cameras with installation for Afnan',
-  'Create invoice for 2 CCTV cameras and one DVR for Afnan',
+  'Need quote for 3 CCTV cameras with installation',
+  'Create invoice for 2 CCTV cameras and one DVR',
   'What is your refund policy?',
   'Follow up with customer who asked price yesterday',
 ];
@@ -142,6 +142,7 @@ export default function App() {
             text: result.generatedOutput?.humanText || 'Done.',
             intent: result.intent,
             verified: result.verified,
+            language: result.generatedOutput?.language || 'en',
           },
         ]);
 
@@ -258,6 +259,7 @@ export default function App() {
                   demoMessages={DEMO_MESSAGES}
                   language={language}
                   onLanguageChange={setLanguage}
+                  aiMode={stats?.aiMode}
                 />
               </div>
 
@@ -276,7 +278,7 @@ export default function App() {
                 <WhatsAppPreview
                       response={response}
                       originalMessage={[...messages].reverse().find((m) => m.type === 'user')?.text || ''}
-                      language={language}
+                      language={response.generatedOutput?.language || 'en'}
                     />
                   </>
                 )}
@@ -317,6 +319,7 @@ export default function App() {
                   demoMessages={DEMO_MESSAGES}
                   language={language}
                   onLanguageChange={setLanguage}
+                  aiMode={stats?.aiMode}
                 />
 
                 {/* Pipeline accordion */}
@@ -368,7 +371,7 @@ export default function App() {
                         <WhatsAppPreview
                           response={response}
                           originalMessage={[...messages].reverse().find((m) => m.type === 'user')?.text || ''}
-                          language={language}
+                          language={response.generatedOutput?.language || 'en'}
                         />
                       </div>
                     )}
@@ -451,7 +454,7 @@ export default function App() {
                 <WhatsAppPreview
                   response={response}
                   originalMessage={[...messages].reverse().find((m) => m.type === 'user')?.text || ''}
-                  language={language}
+                  language={response.generatedOutput?.language || 'en'}
                 />
               )}
             </div>

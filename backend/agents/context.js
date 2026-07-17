@@ -358,13 +358,22 @@ async function runContextAgent(intakeOutput, originalMessage, inventoryCatalog =
       ? ` | LOW STOCK after order`
       : '';
 
-  const dashboardSrcNote = isInventoryDashboard ? ` | Stock verified: ${stockStatusText} | Price source: ${priceSource}` : '';
+  let summaryText = '';
+  if (matchedItems.length === 0) {
+    summaryText = `Sources: ${sourcesUsed.join(', ')} | Items: 0 | Stock check: Not required | Price source: Not applicable`;
+  } else {
+    if (isInventoryDashboard) {
+      summaryText = `Sources: ${sourcesUsed.join(', ')} | Items: ${matchedItems.length}${loyaltyNote}${assumptionNote ? ` | Note: ${assumptionNote}` : ''} | Stock verified: ${stockStatusText} | Price source: ${priceSource}`;
+    } else {
+      summaryText = `Sources: ${sourcesUsed.join(', ')} | Items: ${matchedItems.length}${loyaltyNote}${assumptionNote ? ` | Note: ${assumptionNote}` : ''}${stockNote}`;
+    }
+  }
 
   return {
     agent: 'ContextAgent',
     duration: Date.now() - startTime,
     output: enrichedContext,
-    summary: `Sources: ${sourcesUsed.join(', ')} | Items: ${matchedItems.length}${loyaltyNote}${assumptionNote ? ` | Note: ${assumptionNote}` : ''}${isInventoryDashboard ? '' : stockNote}${dashboardSrcNote}`,
+    summary: summaryText,
   };
 }
 
