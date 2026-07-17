@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { MessageSquare, BarChart2, FileText, X } from 'lucide-react';
+import { MessageSquare, BarChart2, FileText, X, Package } from 'lucide-react';
 import bizpilotIcon from './assets/bizpilot_icon.svg';
 import ChatPanel from './components/ChatPanel';
 import PipelineVisualizer from './components/PipelineVisualizer';
@@ -7,11 +7,13 @@ import WhatsAppPreview from './components/WhatsAppPreview';
 import DocumentPreview from './components/DocumentPreview';
 import StatsDashboard from './components/StatsDashboard';
 import InteractionLogs from './components/InteractionLogs';
+import InventoryDashboard from './components/InventoryDashboard';
+import { useInventoryStore } from './lib/inventoryStore';
 import { processMessage, getStats } from './services/api';
 
 const DEMO_MESSAGES = [
-  'Need quote for 3 CCTV cameras with installation',
-  'Create invoice for 2 CCTV cameras and one DVR',
+  'Need quote for 3 CCTV cameras with installation for Afnan',
+  'Create invoice for 2 CCTV cameras and one DVR for Afnan',
   'What is your refund policy?',
   'Follow up with customer who asked price yesterday',
 ];
@@ -29,6 +31,7 @@ function useIsMobile() {
 
 export default function App() {
   const isMobile = useIsMobile();
+  const { recordUsage, recordStockCheck } = useInventoryStore();
 
   // Navigation
   const [activeTab, setActiveTab] = useState('chat');
@@ -111,6 +114,22 @@ export default function App() {
 
         const selectedLang = lang || language || 'en';
         const result = await processMessage(text, selectedLang);
+
+        // Stock Deduction / Check tracking from process result
+        if (result.intent === 'invoice_request' && result.generatedOutput?.items) {
+          result.generatedOutput.items.forEach(item => {
+            if (item.type === 'product' && item.id) {
+              recordUsage(item.id, item.quantity, "Invoice");
+            }
+          });
+        } else if (result.intent === 'quote_request' && result.generatedOutput?.items) {
+          result.generatedOutput.items.forEach(item => {
+            if (item.type === 'product' && item.id) {
+              recordStockCheck(item.id, item.quantity, "Quote");
+            }
+          });
+        }
+
         setResponse(result);
         setPipelineSteps(result.pipelineSteps || []);
         setCurrentStepIndex(-1);
@@ -185,7 +204,8 @@ export default function App() {
             <nav className="top-nav-row" style={{ display: 'flex', gap: 4 }}>
               {[
                 { id: 'chat', label: 'AI Copilot', icon: MessageSquare },
-                { id: 'stats', label: 'Dashboard', icon: BarChart2 },
+                { id: 'inventory', label: 'Inventory', icon: Package },
+                { id: 'stats', label: 'Analytics', icon: BarChart2 },
                 { id: 'logs', label: 'Logs', icon: FileText },
               ].map(({ id, label, icon: Icon }) => (
                 <button
@@ -359,6 +379,7 @@ export default function App() {
           </>
         )}
 
+        {activeTab === 'inventory' && <InventoryDashboard />}
         {activeTab === 'stats' && <StatsDashboard stats={stats} onRefresh={refreshStats} />}
         {activeTab === 'logs' && <InteractionLogs onRefresh={refreshStats} />}
       </div>
@@ -367,7 +388,8 @@ export default function App() {
       <nav className="bottom-nav">
         {[
           { id: 'chat', label: 'Copilot', icon: MessageSquare },
-          { id: 'stats', label: 'Dashboard', icon: BarChart2 },
+          { id: 'inventory', label: 'Inventory', icon: Package },
+          { id: 'stats', label: 'Analytics', icon: BarChart2 },
           { id: 'logs', label: 'Logs', icon: FileText },
         ].map(({ id, label, icon: Icon }) => (
           <button

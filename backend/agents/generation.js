@@ -341,6 +341,38 @@ function generateQuoteOrInvoice(context, type) {
       }).join('\n')
     : '';
 
+  // ── Stock status section ──────────────────────────────────────────────────
+  const stockStatusLines = [];
+  items.forEach(item => {
+    if (item.type === 'service') return; // skip services
+    const note = stockNotes.find(n => n.productId === item.id);
+    let statusText = 'Available';
+    if (note) {
+      if (note.status === 'insufficient') {
+        if (note.availableQty === 0) {
+          statusText = 'Out of Stock (please update inventory before confirming)';
+        } else {
+          statusText = `Stock Warning (only ${note.availableQty} units available)`;
+        }
+      } else if (note.status === 'low_after_order') {
+        statusText = 'Low Stock';
+      }
+    } else if (item.stockQty !== undefined && item.stockQty !== null) {
+      if (item.stockQty === 0) {
+        statusText = 'Out of Stock (please update inventory before confirming)';
+      } else if (item.stockQty < item.quantity) {
+        statusText = `Stock Warning (only ${item.stockQty} units available)`;
+      } else if (item.stockQty <= (item.lowStockThreshold || 5)) {
+        statusText = 'Low Stock';
+      }
+    }
+    stockStatusLines.push(`${item.name}: ${statusText}`);
+  });
+
+  const stockStatusBlock = stockStatusLines.length > 0
+    ? `\n*Stock Status:*\n${stockStatusLines.join('\n')}\nStock Verified by Context Agent\n`
+    : '';
+
   const humanText = `📋 *${typeLabel} Generated Successfully*
 
 ${typeLabel} No: *${docNumber}*
@@ -356,9 +388,14 @@ Subtotal: ₹${financials.subtotal.toLocaleString('en-IN')}
 ${discountLines}GST (18%): ₹${financials.taxAmount.toLocaleString('en-IN')}
 *Total: ₹${financials.total.toLocaleString('en-IN')}*
 ───────────────
+${stockStatusBlock}
+*Payment Terms:*
+50% advance (₹${Math.round(financials.total / 2).toLocaleString('en-IN')}), balance after installation.
 
-Payment: 50% advance (₹${Math.round(financials.total / 2).toLocaleString('en-IN')}), balance after installation.
-Valid for 30 days. Warranty: 1 year on all products.${assumptionSuffix}${stockWarningSuffix}
+*Warranty:*
+1-year warranty on products and workmanship. Valid for 30 days.${assumptionSuffix}${stockWarningSuffix}
+
+Verified by Review Agent
 
 _Thank you for choosing SecureVision Systems!_`;
 

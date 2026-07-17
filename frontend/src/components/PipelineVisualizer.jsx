@@ -13,7 +13,7 @@ const AGENTS = [
     id: 'CAM-02',
     name: 'CONTEXT',
     label: 'Context Agent',
-    desc: 'Fetches business data · Enriches request',
+    desc: 'Fetches inventory/business data',
     icon: Database,
   },
   {
@@ -27,14 +27,14 @@ const AGENTS = [
     id: 'CAM-04',
     name: 'APPROVAL',
     label: 'Approval Agent',
-    desc: 'Verifies value limits · Routes workflow',
+    desc: 'Validates stock, pricing limits & workflow',
     icon: FileCheck,
   },
   {
     id: 'CAM-05',
     name: 'REVIEW',
     label: 'Review Agent',
-    desc: 'Verifies pricing · Quantities · Facts',
+    desc: 'Verifies pricing, quantity, facts, completeness, approval',
     icon: ShieldCheck,
   },
 ];
