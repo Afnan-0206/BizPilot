@@ -1,4 +1,4 @@
-import { RefreshCw, TrendingUp, Clock, ShieldCheck, Target, Activity, Timer } from 'lucide-react';
+import { RefreshCw, TrendingUp, Clock, ShieldCheck, Target, Activity, Timer, AlertTriangle, Package } from 'lucide-react';
 
 const INTENT_CFG = {
   quote_request:   { label: 'Quotations', color: 'var(--warning)',  emoji: '📋' },
@@ -272,6 +272,93 @@ export default function StatsDashboard({ stats, onRefresh }) {
                 })}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+      {/* Low Stock Alerts card */}
+      {stats.lowStockItems?.length > 0 && (
+        <div className="card" style={{
+          padding: 0,
+          overflow: 'hidden',
+          border: '1px solid rgba(251,191,36,0.25)',
+          background: 'linear-gradient(135deg, var(--bg-panel), rgba(251,191,36,0.04))',
+          position: 'relative',
+        }}>
+          {/* amber glow stripe */}
+          <div style={{
+            position: 'absolute',
+            top: 0, left: 0, right: 0,
+            height: 2,
+            background: 'linear-gradient(90deg, transparent, var(--warning), transparent)',
+            opacity: 0.7,
+          }} />
+
+          <div style={{
+            padding: '12px 16px',
+            borderBottom: '1px solid rgba(251,191,36,0.15)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+          }}>
+            <AlertTriangle size={13} color="var(--warning)" />
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 700, color: 'var(--warning)', letterSpacing: '0.5px' }}>
+              LOW STOCK ALERTS
+            </span>
+            <span style={{
+              marginLeft: 'auto',
+              fontFamily: 'var(--font-mono)',
+              fontSize: 9,
+              color: 'var(--text-muted)',
+            }}>
+              {stats.lowStockItems.length} PRODUCT{stats.lowStockItems.length !== 1 ? 'S' : ''} AT OR BELOW THRESHOLD
+            </span>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            {stats.lowStockItems.map((item, idx) => (
+              <div key={item.id} style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 12,
+                padding: '10px 16px',
+                borderBottom: idx < stats.lowStockItems.length - 1 ? '1px solid var(--border-subtle)' : 'none',
+              }}>
+                <div style={{
+                  width: 28, height: 28,
+                  background: 'rgba(251,191,36,0.08)',
+                  border: '1px solid rgba(251,191,36,0.2)',
+                  borderRadius: 6,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  flexShrink: 0,
+                }}>
+                  <Package size={13} color="var(--warning)" />
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', fontFamily: 'var(--font-sans)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {item.name}
+                  </div>
+                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--text-muted)', marginTop: 2 }}>
+                    {item.id}
+                  </div>
+                </div>
+                <div style={{
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: 13,
+                  fontWeight: 700,
+                  color: item.stockQty === 0 ? 'var(--danger)' : 'var(--warning)',
+                  fontVariantNumeric: 'tabular-nums',
+                  flexShrink: 0,
+                }}>
+                  {item.stockQty}
+                  <span style={{ fontSize: 9, fontWeight: 400, color: 'var(--text-muted)', marginLeft: 3 }}>in stock</span>
+                </div>
+                <div>
+                  <span className={`badge ${item.stockQty === 0 ? 'badge-red' : 'badge-amber'}`} style={{ fontSize: 8 }}>
+                    {item.stockQty === 0 ? 'OUT OF STOCK' : 'LOW'}
+                  </span>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       )}

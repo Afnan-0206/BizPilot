@@ -20,7 +20,8 @@
       "price": 2500,
       "unit": "piece",
       "category": "camera",
-      "aliases": ["dome camera", "dome", "cctv camera", "camera", "cctv"]
+      "aliases": ["dome camera", "dome", "cctv camera", "camera", "cctv"],
+      "stockQty": 12
     },
     {
       "id": "P002",
@@ -29,7 +30,8 @@
       "price": 2800,
       "unit": "piece",
       "category": "camera",
-      "aliases": ["bullet camera", "bullet", "outdoor camera"]
+      "aliases": ["bullet camera", "bullet", "outdoor camera"],
+      "stockQty": 6
     },
     {
       "id": "P003",
@@ -38,7 +40,8 @@
       "price": 6500,
       "unit": "piece",
       "category": "recorder",
-      "aliases": ["4 channel dvr", "4ch dvr", "dvr", "4 ch dvr", "4-channel dvr"]
+      "aliases": ["4 channel dvr", "4ch dvr", "dvr", "4 ch dvr", "4-channel dvr"],
+      "stockQty": 4
     },
     {
       "id": "P004",
@@ -47,7 +50,8 @@
       "price": 10500,
       "unit": "piece",
       "category": "recorder",
-      "aliases": ["8 channel dvr", "8ch dvr", "8 ch dvr", "8-channel dvr"]
+      "aliases": ["8 channel dvr", "8ch dvr", "8 ch dvr", "8-channel dvr"],
+      "stockQty": 2
     },
     {
       "id": "P005",
@@ -56,7 +60,8 @@
       "price": 4200,
       "unit": "piece",
       "category": "storage",
-      "aliases": ["hard disk", "hdd", "hard drive", "storage", "1tb", "surveillance hdd", "hard disc"]
+      "aliases": ["hard disk", "hdd", "hard drive", "storage", "1tb", "surveillance hdd", "hard disc"],
+      "stockQty": 15
     }
   ],
   "services": [

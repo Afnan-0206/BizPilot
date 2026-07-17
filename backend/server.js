@@ -111,9 +111,9 @@ app.post('/api/process', async (req, res) => {
     pipelineSteps.push(generationResult);
     console.log(`[${requestId}] ✓ Generation Agent: ${generationResult.summary}`);
 
-    // ── STEP 4: APPROVAL AGENT ────────────────────────────────────────────
+    // ── STEP 4: APPROVAL AGENT ────────────────────────────────────────────────────
     console.log(`[${requestId}] ► Approval Agent starting...`);
-    const approvalResult = await runApprovalAgent(generationResult.output);
+    const approvalResult = await runApprovalAgent(generationResult, contextResult.output);
     pipelineSteps.push(approvalResult);
     console.log(`[${requestId}] ✓ Approval Agent: ${approvalResult.summary}`);
 
@@ -145,7 +145,7 @@ app.post('/api/process', async (req, res) => {
       finalGenerationResult.duration = retryGenDelay + (finalGenerationResult.duration || 0);
 
       // Re-run Approval step on new document
-      finalApprovalResult = await runApprovalAgent(finalGenerationResult.output);
+      finalApprovalResult = await runApprovalAgent(finalGenerationResult, contextResult.output);
       finalApprovalResult.agent = 'ApprovalAgent (Retry)';
 
       // Re-review after regeneration
@@ -167,13 +167,27 @@ app.post('/api/process', async (req, res) => {
       console.log(`[${requestId}] ✓ Regeneration complete: ${reviewResult.summary}`);
     }
 
-    // ── Record visit AFTER current generation is complete ────────────────
+    // ── Record visit AFTER current generation is complete ────────────────────
     const customerName = contextResult.output.customer?.name;
     const isNamedCustomer = customerName && customerName !== 'Walk-in Customer' && customerName !== 'Walk-in';
     const isDoc = ['quote_request', 'invoice_request'].includes(intakeResult.output.intent);
     if (isNamedCustomer && isDoc) {
       store.recordVisit(customerName);
       console.log(`[server] Recorded visit for customer "${customerName}". Next visit will count as #${store.getVisitCount(customerName) + 1}.`);
+    }
+
+    // ── Decrement stock for approved orders ────────────────────────────────────
+    // Only for quote/invoice intents where approval was not skipped.
+    // We decrement regardless of whether it was auto-approved or owner-approved—
+    // the order is going ahead either way.
+    const approvalStatus = finalApprovalResult.output?.status;
+    if (isDoc && approvalStatus && approvalStatus !== 'skipped') {
+      const approvedItems = finalGenerationResult.output?.items || [];
+      for (const item of approvedItems) {
+        if (item.type === 'product' && item.id) {
+          store.decrementStock(item.id, item.quantity);
+        }
+      }
     }
 
     // ── Build final response ───────────────────────────────────────────────
@@ -234,7 +248,7 @@ app.post('/api/process', async (req, res) => {
   }
 });
 
-// ─── Stats Endpoint ──────────────────────────────────────────────────────────
+// ─── Stats Endpoint ──────────────────────────────────────────────────────────────────
 app.get('/api/stats', (req, res) => {
   const avgResponseTime = stats.totalRequests > 0
     ? Math.round(stats.totalResponseTime / stats.totalRequests)
@@ -245,7 +259,10 @@ app.get('/api/stats', (req, res) => {
     totalVerified: stats.totalVerified,
     avgResponseTime,
     intentCounts: stats.intentCounts,
-    recentLogs: interactionLogs.slice(0, 20)
+    recentLogs: interactionLogs.slice(0, 20),
+    // Inventory awareness — in-memory, resets on server restart
+    lowStockItems: store.getLowStockItems(),
+    allStockLevels: store.getAllStockLevels(),
   });
 });
 

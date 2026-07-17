@@ -12,6 +12,7 @@
 
 const seedData = require('../data/seed.json');
 const store = require('../lib/store');
+const { getStockQty, LOW_STOCK_THRESHOLD } = require('../lib/store');
 
 // ── Named Source Classifier ───────────────────────────────────────────────────
 const POLICY_KEYWORDS = /refund|warranty|payment|terms|service area|area|cancel|guarantee|money.?back/i;
@@ -100,6 +101,46 @@ function matchProducts(items, quantities) {
   return matched;
 }
 
+// ── Stock Availability Check ──────────────────────────────────────────────────
+/**
+ * For each matched product (not services), compare requested qty against
+ * current in-memory stock and classify as:
+ *   'insufficient'    — requested qty > available stock
+ *   'low_after_order' — stock would reach <= LOW_STOCK_THRESHOLD after fulfilling this order
+ *   'ok'              — plenty of stock remaining
+ *
+ * Services (no stockQty in seed, type==='service') are always 'ok'.
+ */
+function computeStockNotes(matchedItems) {
+  const notes = [];
+  for (const item of matchedItems) {
+    if (item.type === 'service') continue;             // labour — no stock tracking
+    const available = getStockQty(item.id);
+    if (available === null) continue;                  // unknown product id
+    const requested = item.quantity;
+    const remaining = available - requested;
+
+    let status;
+    if (requested > available) {
+      status = 'insufficient';
+    } else if (remaining <= LOW_STOCK_THRESHOLD) {
+      status = 'low_after_order';
+    } else {
+      status = 'ok';
+    }
+
+    notes.push({
+      productId: item.id,
+      product: item.name,
+      requestedQty: requested,
+      availableQty: available,
+      remainingAfterOrder: Math.max(0, remaining),
+      status,
+    });
+  }
+  return notes;
+}
+
 // ── FAQ Matching ──────────────────────────────────────────────────────────────
 function matchFAQs(message) {
   const msg = message.toLowerCase();
@@ -165,6 +206,11 @@ async function runContextAgent(intakeOutput, originalMessage) {
     assumptionNote = "Assumed CCTV Dome Camera (most common) — customer didn't specify camera type.";
   }
 
+  // ── Stock Availability Check ───────────────────────────────────────────────
+  const stockNotes = computeStockNotes(matchedItems);
+  const hasStockIssue = stockNotes.some(n => n.status === 'insufficient');
+  const hasLowStock   = stockNotes.some(n => n.status === 'low_after_order');
+
   // ── Returning-Customer Personalization ─────────────────────────
   let loyaltyDiscount = null;
   let customerNote = null;
@@ -223,6 +269,10 @@ async function runContextAgent(intakeOutput, originalMessage) {
     sourcesUsed,
     // Generic assumption
     assumptionNote,
+    // Stock awareness
+    stockNotes,
+    hasStockIssue,
+    hasLowStock,
   };
 
   const loyaltyNote = loyaltyDiscount?.applicable
@@ -231,11 +281,17 @@ async function runContextAgent(intakeOutput, originalMessage) {
       ? ` | ${customerNote}`
       : '';
 
+  const stockNote = hasStockIssue
+    ? ` | ⚠ STOCK SHORTFALL: ${stockNotes.filter(n => n.status === 'insufficient').map(n => `${n.product}(need ${n.requestedQty}, have ${n.availableQty})`).join(', ')}`
+    : hasLowStock
+      ? ` | LOW STOCK after order`
+      : '';
+
   return {
     agent: 'ContextAgent',
     duration: Date.now() - startTime,
     output: enrichedContext,
-    summary: `Sources: ${sourcesUsed.join(', ')} | Items: ${matchedItems.length}${loyaltyNote}${assumptionNote ? ` | Note: ${assumptionNote}` : ''}`,
+    summary: `Sources: ${sourcesUsed.join(', ')} | Items: ${matchedItems.length}${loyaltyNote}${assumptionNote ? ` | Note: ${assumptionNote}` : ''}${stockNote}`,
   };
 }
 
