@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { Shield, MessageSquare, BarChart2, FileText, X } from 'lucide-react';
+import { MessageSquare, BarChart2, FileText, X } from 'lucide-react';
+import bizpilotIcon from './assets/bizpilot_icon.svg';
 import ChatPanel from './components/ChatPanel';
 import PipelineVisualizer from './components/PipelineVisualizer';
 import WhatsAppPreview from './components/WhatsAppPreview';
@@ -162,15 +163,13 @@ export default function App() {
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 58 }}>
             {/* Logo */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <div style={{
-                width: 36, height: 36,
-                background: 'linear-gradient(135deg, #0d2240, #0891B2)',
-                borderRadius: 8,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                border: '1px solid rgba(34,211,238,0.3)',
-              }}>
-                <Shield size={18} color="var(--cyan)" />
-              </div>
+              <img
+                src={bizpilotIcon}
+                alt="BizPilot AI icon"
+                width={36}
+                height={36}
+                style={{ display: 'block', flexShrink: 0, imageRendering: 'crisp-edges' }}
+              />
               <div>
                 <div style={{ fontSize: 15, fontWeight: 800, letterSpacing: '-0.2px', fontFamily: 'var(--font-sans)' }}>
                   <span style={{ color: 'var(--text-primary)' }}>BizPilot</span>

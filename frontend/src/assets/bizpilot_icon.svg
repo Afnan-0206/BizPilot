@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40" fill="none">
+  <defs>
+    <linearGradient id="bgGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0d2240"/>
+      <stop offset="100%" stop-color="#0e7490"/>
+    </linearGradient>
+    <linearGradient id="boltGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#67e8f9"/>
+      <stop offset="100%" stop-color="#22d3ee"/>
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="1.2" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <!-- Background rounded square -->
+  <rect width="40" height="40" rx="9" fill="url(#bgGrad)"/>
+  <!-- Shield border -->
+  <path d="M20 5 L30 9 L30 19 C30 25.5 25.5 31 20 33 C14.5 31 10 25.5 10 19 L10 9 Z"
+        fill="none" stroke="rgba(34,211,238,0.35)" stroke-width="1"/>
+  <!-- Shield fill -->
+  <path d="M20 7 L28.5 10.5 L28.5 19.5 C28.5 25.2 24.8 30 20 31.5 C15.2 30 11.5 25.2 11.5 19.5 L11.5 10.5 Z"
+        fill="rgba(34,211,238,0.06)"/>
+  <!-- Lightning bolt / AI mark -->
+  <path d="M22.5 11 L16.5 21 L20.5 21 L17.5 29 L24.5 18 L20 18 Z"
+        fill="url(#boltGrad)" filter="url(#glow)"/>
+  <!-- Outer border glow -->
+  <rect width="40" height="40" rx="9" fill="none" stroke="rgba(34,211,238,0.25)" stroke-width="1"/>
+</svg>
