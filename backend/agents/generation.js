@@ -79,71 +79,66 @@ function translateFallback(text, targetLanguage) {
   return translated;
 }
 
-function withTimeout(promise, ms = 8000) {
-  return Promise.race([
-    promise,
-    new Promise((_, reject) => setTimeout(() => reject(new Error(`Timeout ${ms}ms`)), ms))
-  ]);
-}
+// (duplicate withTimeout removed — defined once above at the top of this file)
 
-// ─── Translation via Gemini ───────────────────────────────────────────────────
+// ─── Translation via Gemini (with dictionary fallback) ────────────────────────
 async function translateWithGemini(text, targetLanguage) {
-  console.log(`Requested language: ${targetLanguage}`);
+  console.log(`[LANGUAGE DEBUG] Requested language: ${targetLanguage}`);
+  console.log(`[LANGUAGE DEBUG] Before translation (first 120 chars): ${text.substring(0, 120)}`);
 
   if (!targetLanguage || targetLanguage === 'en') {
-    console.log(`Translated language: en`);
-    console.log(`Translation success: true`);
+    console.log(`[LANGUAGE DEBUG] Translated language: en (passthrough)`);
     return { translatedText: text, actualLanguage: 'en' };
   }
 
   const langNames = { kn: 'Kannada', hi: 'Hindi' };
   const langName = langNames[targetLanguage];
   if (!langName) {
-    console.log(`Translated language: en`);
-    console.log(`Translation success: false`);
-    console.log(`Translation error: Unsupported target language ${targetLanguage}`);
+    console.warn(`[LANGUAGE DEBUG] Unsupported language code: ${targetLanguage}, returning en`);
     return { translatedText: text, actualLanguage: 'en' };
   }
 
   const hasAIKey = process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY !== 'your_api_key_here';
-  if (!hasAIKey) {
-    console.log(`Translated language: en`);
-    console.log(`Translation success: false`);
-    console.log(`Translation error: Mock Mode (GEMINI_API_KEY missing)`);
-    return { translatedText: text, actualLanguage: 'en' };
-  }
 
-  const systemPrompt = `Translate the following business response into:
-- Hindi if language == "hi"
-- Kannada if language == "kn"
+  // ── Attempt Gemini translation ──────────────────────────────────────────────
+  if (hasAIKey) {
+    const systemPrompt = `You are a professional business translator. Translate the following business response into ${langName}.
 
-Rules:
-- Keep prices, numbers, GST, quotation IDs and product names unchanged.
-- Translate headings and paragraphs only.
-- Return ONLY the translated text.
-- Do not add explanations.`;
+Strict rules:
+- Keep ALL prices (₹ amounts), numbers, GST percentages, quotation/invoice IDs, and product names (CCTV, DVR, etc.) EXACTLY unchanged.
+- Translate all headings, labels, and paragraphs into ${langName}.
+- Do NOT add any explanation, preamble, or commentary.
+- Return ONLY the translated text, nothing else.`;
 
-  const userPrompt = `Target language: ${targetLanguage} (${langName})\n\nBusiness response to translate:\n${text}`;
+    const userPrompt = `Translate this business response into ${langName}:\n\n${text}`;
 
-  try {
-    const model = getModel(false, systemPrompt);
-    const response = await withTimeout(model.generateContent(userPrompt));
-    const translated = response.response.text().trim();
-    if (translated && translated !== text) {
-      console.log(`Translated language: ${targetLanguage}`);
-      console.log(`Translation success: true`);
-      return { translatedText: translated, actualLanguage: targetLanguage };
+    try {
+      const model = getModel(false, systemPrompt);
+      // Use 20s timeout — Gemini 2.5 Flash (thinking model) needs more time
+      const response = await withTimeout(model.generateContent(userPrompt), 20000);
+      const translated = response.response.text().trim();
+
+      if (translated && translated.length > 10 && translated !== text) {
+        console.log(`[LANGUAGE DEBUG] Gemini translation success → ${targetLanguage}`);
+        console.log(`[LANGUAGE DEBUG] After translation (first 120 chars): ${translated.substring(0, 120)}`);
+        console.log(`[LANGUAGE DEBUG] Final language: ${targetLanguage}`);
+        return { translatedText: translated, actualLanguage: targetLanguage };
+      }
+
+      console.warn(`[LANGUAGE DEBUG] Gemini returned empty/identical response, falling back to dictionary`);
+    } catch (err) {
+      console.warn(`[LANGUAGE DEBUG] Gemini translation error: ${err.message} — falling back to dictionary`);
     }
-    console.log(`Translated language: en`);
-    console.log(`Translation success: false`);
-    console.log(`Translation error: Gemini returned empty or identical response`);
-    return { translatedText: text, actualLanguage: 'en' };
-  } catch (err) {
-    console.log(`Translated language: en`);
-    console.log(`Translation success: false`);
-    console.log(`Translation error: ${err.message}`);
-    return { translatedText: text, actualLanguage: 'en' };
+  } else {
+    console.warn(`[LANGUAGE DEBUG] No Gemini API key — using dictionary fallback for ${targetLanguage}`);
   }
+
+  // ── Dictionary fallback — always translates to target language, never returns 'en' ──
+  const fallbackTranslated = translateFallback(text, targetLanguage);
+  console.log(`[LANGUAGE DEBUG] Dictionary fallback used → ${targetLanguage}`);
+  console.log(`[LANGUAGE DEBUG] After translation (first 120 chars): ${fallbackTranslated.substring(0, 120)}`);
+  console.log(`[LANGUAGE DEBUG] Final language: ${targetLanguage}`);
+  return { translatedText: fallbackTranslated, actualLanguage: targetLanguage };
 }
 
 // ─── Document Number Generator ───────────────────────────────────────────────
