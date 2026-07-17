@@ -239,7 +239,7 @@ function classifyWithMock(message) {
 }
 
 // ─── Main Export ────────────────────────────────────────────────────────────
-async function runIntakeAgent(message) {
+async function runIntakeAgent(message, language = 'en') {
   const startTime = Date.now();
   let result;
   let method = 'simulated';

@@ -12,7 +12,7 @@
 
 const APPROVAL_THRESHOLD = 12000;
 
-async function runApprovalAgent(generationOutput, contextOutput = null) {
+async function runApprovalAgent(generationOutput, contextOutput = null, language = 'en') {
   const startTime = Date.now();
 
   // generationOutput may be the raw generation result object or just the .output field.

@@ -235,7 +235,7 @@ function addInstallationIfNeeded(matchedItems, serviceRequired) {
 }
 
 // ── Main Export ───────────────────────────────────────────────────────────────
-async function runContextAgent(intakeOutput, originalMessage, inventoryCatalog = null, inventorySnapshot = null, businessContext = null) {
+async function runContextAgent(intakeOutput, originalMessage, inventoryCatalog = null, inventorySnapshot = null, businessContext = null, language = 'en') {
   const startTime = Date.now();
   const { intent, extracted_entities } = intakeOutput;
   const { items = [], quantities = [], customer_name = '', customer_phone = '', service_required = false } = extracted_entities;
