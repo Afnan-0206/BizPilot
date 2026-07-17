@@ -79,39 +79,70 @@ function translateFallback(text, targetLanguage) {
   return translated;
 }
 
+function withTimeout(promise, ms = 8000) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => setTimeout(() => reject(new Error(`Timeout ${ms}ms`)), ms))
+  ]);
+}
+
 // ─── Translation via Gemini ───────────────────────────────────────────────────
 async function translateWithGemini(text, targetLanguage) {
-  if (!targetLanguage || targetLanguage === 'en') return text;
+  console.log(`Requested language: ${targetLanguage}`);
 
-  const langNames = { kn: 'Kannada (ಕನ್ನಡ)', hi: 'Hindi (हिंदी)' };
+  if (!targetLanguage || targetLanguage === 'en') {
+    console.log(`Translated language: en`);
+    console.log(`Translation success: true`);
+    return { translatedText: text, actualLanguage: 'en' };
+  }
+
+  const langNames = { kn: 'Kannada', hi: 'Hindi' };
   const langName = langNames[targetLanguage];
-  if (!langName) return text;
+  if (!langName) {
+    console.log(`Translated language: en`);
+    console.log(`Translation success: false`);
+    console.log(`Translation error: Unsupported target language ${targetLanguage}`);
+    return { translatedText: text, actualLanguage: 'en' };
+  }
 
   const hasAIKey = process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY !== 'your_api_key_here';
   if (!hasAIKey) {
-    // Under mock mode, if translation is requested, we do not claim it is Kannada/Hindi if we don't translate it
-    return text;
+    console.log(`Translated language: en`);
+    console.log(`Translation success: false`);
+    console.log(`Translation error: Mock Mode (GEMINI_API_KEY missing)`);
+    return { translatedText: text, actualLanguage: 'en' };
   }
 
-  const systemPrompt = `You are a professional translator. Translate the following business message to ${langName}.
+  const systemPrompt = `Translate the following business response into:
+- Hindi if language == "hi"
+- Kannada if language == "kn"
+
 Rules:
-- Keep all numbers, currency amounts (₹), document numbers, and proper nouns as-is in standard format
-- Keep brand names (SecureVision Systems) and product names in English
-- Maintain the same tone: professional but friendly
-- Keep any asterisk (*text*) formatting intact
-- Return ONLY the translated text, nothing else`;
+- Keep prices, numbers, GST, quotation IDs and product names unchanged.
+- Translate headings and paragraphs only.
+- Return ONLY the translated text.
+- Do not add explanations.`;
+
+  const userPrompt = `Target language: ${targetLanguage} (${langName})\n\nBusiness response to translate:\n${text}`;
 
   try {
     const model = getModel(false, systemPrompt);
-    const response = await withTimeout(model.generateContent(text));
+    const response = await withTimeout(model.generateContent(userPrompt));
     const translated = response.response.text().trim();
     if (translated && translated !== text) {
-      return translated;
+      console.log(`Translated language: ${targetLanguage}`);
+      console.log(`Translation success: true`);
+      return { translatedText: translated, actualLanguage: targetLanguage };
     }
-    return text;
+    console.log(`Translated language: en`);
+    console.log(`Translation success: false`);
+    console.log(`Translation error: Gemini returned empty or identical response`);
+    return { translatedText: text, actualLanguage: 'en' };
   } catch (err) {
-    console.warn('[Generation Agent] Gemini translation failed, falling back to English:', err.message);
-    return text;
+    console.log(`Translated language: en`);
+    console.log(`Translation success: false`);
+    console.log(`Translation error: ${err.message}`);
+    return { translatedText: text, actualLanguage: 'en' };
   }
 }
 
@@ -576,11 +607,13 @@ Feel free to ask! — SecureVision Systems`
   // Handle multilingual translation if language is not English
   let actualLanguage = 'en';
   if (language && language !== 'en' && result.humanText) {
-    const translatedText = await translateWithGemini(result.humanText, language);
-    if (translatedText && translatedText !== result.humanText) {
-      result.humanText = translatedText;
-      actualLanguage = language;
-    }
+    const translationResult = await translateWithGemini(result.humanText, language);
+    result.humanText = translationResult.translatedText;
+    actualLanguage = translationResult.actualLanguage;
+  } else {
+    console.log(`Requested language: ${language || 'en'}`);
+    console.log(`Translated language: en`);
+    console.log(`Translation success: true`);
   }
   result.language = actualLanguage;
 

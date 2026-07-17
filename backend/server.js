@@ -88,7 +88,7 @@ app.post('/api/process', async (req, res) => {
     console.log(`[${requestId}] ► Intake Agent starting...`);
     const intakeDelay = Math.floor(450 + Math.random() * 250); // ~400-700ms
     await sleep(intakeDelay);
-    const intakeResult = await runIntakeAgent(message.trim());
+    const intakeResult = await runIntakeAgent(message.trim(), language);
     intakeResult.duration = intakeDelay + (intakeResult.duration || 0);
     pipelineSteps.push(intakeResult);
     console.log(`[${requestId}] ✓ Intake Agent: ${intakeResult.summary}`);
@@ -97,7 +97,7 @@ app.post('/api/process', async (req, res) => {
     console.log(`[${requestId}] ► Context Agent starting...`);
     const contextDelay = Math.floor(300 + Math.random() * 200); // ~300-500ms
     await sleep(contextDelay);
-    const contextResult = await runContextAgent(intakeResult.output, message.trim(), req.body.inventoryCatalog, req.body.inventorySnapshot, req.body.businessContext);
+    const contextResult = await runContextAgent(intakeResult.output, message.trim(), req.body.inventoryCatalog, req.body.inventorySnapshot, req.body.businessContext, language);
     contextResult.duration = contextDelay + (contextResult.duration || 0);
     pipelineSteps.push(contextResult);
     console.log(`[${requestId}] ✓ Context Agent: ${contextResult.summary}`);
@@ -111,9 +111,9 @@ app.post('/api/process', async (req, res) => {
     pipelineSteps.push(generationResult);
     console.log(`[${requestId}] ✓ Generation Agent: ${generationResult.summary}`);
 
-    // ── STEP 4: APPROVAL AGENT ────────────────────────────────────────────────────
+    // ── STEP 4: APPROVAL AGENT ────────────────════════════════════════════════════
     console.log(`[${requestId}] ► Approval Agent starting...`);
-    const approvalResult = await runApprovalAgent(generationResult, contextResult.output);
+    const approvalResult = await runApprovalAgent(generationResult, contextResult.output, language);
     pipelineSteps.push(approvalResult);
     console.log(`[${requestId}] ✓ Approval Agent: ${approvalResult.summary}`);
 
@@ -125,7 +125,8 @@ app.post('/api/process', async (req, res) => {
       generationResult,
       contextResult.output,
       intakeResult.output.extracted_entities,
-      approvalResult
+      approvalResult,
+      language
     );
     reviewResult.duration = reviewDelay + (reviewResult.duration || 0);
     pipelineSteps.push(reviewResult);
@@ -145,7 +146,7 @@ app.post('/api/process', async (req, res) => {
       finalGenerationResult.duration = retryGenDelay + (finalGenerationResult.duration || 0);
 
       // Re-run Approval step on new document
-      finalApprovalResult = await runApprovalAgent(finalGenerationResult, contextResult.output);
+      finalApprovalResult = await runApprovalAgent(finalGenerationResult, contextResult.output, language);
       finalApprovalResult.agent = 'ApprovalAgent (Retry)';
 
       // Re-review after regeneration
@@ -155,7 +156,8 @@ app.post('/api/process', async (req, res) => {
         finalGenerationResult,
         contextResult.output,
         intakeResult.output.extracted_entities,
-        finalApprovalResult
+        finalApprovalResult,
+        language
       );
       reviewResult.agent = 'ReviewAgent (Final)';
       reviewResult.duration = retryReviewDelay + (reviewResult.duration || 0);

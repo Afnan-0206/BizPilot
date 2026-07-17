@@ -218,7 +218,7 @@ Respond ONLY with a JSON object in this format:
 }
 
 // ─── Main Review Function ────────────────────────────────────────────────────
-async function runReviewAgent(generationResult, enrichedContext, extractedEntities, approvalResult = null) {
+async function runReviewAgent(generationResult, enrichedContext, extractedEntities, approvalResult = null, language = 'en') {
   const startTime = Date.now();
   const { output: draftOutput } = generationResult;
   const { intent } = enrichedContext;
