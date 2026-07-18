@@ -1,6 +1,24 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { Package, Plus, Edit2, ArrowUpRight, History, Trash2, X, AlertTriangle, RefreshCw } from 'lucide-react';
 import { useInventoryStore } from '../lib/inventoryStore';
+
+// ── Minimal Toast Component ───────────────────────────────────
+function StockToast({ toasts, onRemove }) {
+  return (
+    <div className="stock-toast-container">
+      {toasts.map(t => (
+        <div key={t.id} className={`stock-toast ${t.type}${t.exiting ? ' exiting' : ''}`}>
+          <span style={{ fontSize: 14, flexShrink: 0 }}>{t.type === 'out-of-stock' ? '🚫' : '⚠️'}</span>
+          <span style={{ flex: 1 }}>{t.message}</span>
+          <button
+            onClick={() => onRemove(t.id)}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', opacity: 0.6, padding: 0, flexShrink: 0, lineHeight: 1 }}
+          ><X size={12} /></button>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export default function InventoryDashboard() {
   const {
@@ -15,6 +33,23 @@ export default function InventoryDashboard() {
   } = useInventoryStore();
 
   const stats = getProductStats();
+
+  // Toast state
+  const [toasts, setToasts] = useState([]);
+
+  const showToast = useCallback((message, type) => {
+    const id = Date.now() + Math.random();
+    setToasts(prev => [...prev, { id, message, type, exiting: false }]);
+    setTimeout(() => {
+      setToasts(prev => prev.map(t => t.id === id ? { ...t, exiting: true } : t));
+      setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 280);
+    }, 3500);
+  }, []);
+
+  const removeToast = useCallback((id) => {
+    setToasts(prev => prev.map(t => t.id === id ? { ...t, exiting: true } : t));
+    setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 280);
+  }, []);
 
   // Modal States
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
@@ -73,22 +108,41 @@ export default function InventoryDashboard() {
       .map(a => a.trim().toLowerCase())
       .filter(a => a.length > 0);
 
+    const newStock = formCategory === 'Service' ? null : Number(formStock);
+    const threshold = formCategory === 'Service' ? null : Number(formLowStockThreshold);
+
     const productData = {
       name: formName,
       category: formCategory,
-      stock: formCategory === 'Service' ? null : Number(formStock),
+      stock: newStock,
       price: Number(formPrice),
       gst: Number(formGst),
       warranty: formWarranty,
       description: formDescription,
-      lowStockThreshold: formCategory === 'Service' ? null : Number(formLowStockThreshold),
+      lowStockThreshold: threshold,
       aliases: cleanAliases
     };
 
     if (editingProduct) {
       updateProduct(editingProduct.id, productData);
+      // Toast on stock state change
+      if (formCategory !== 'Service' && newStock !== null) {
+        if (newStock === 0) {
+          showToast(`${formName} is now out of stock.`, 'out-of-stock');
+        } else if (threshold !== null && newStock <= threshold) {
+          showToast(`${formName} has only ${newStock} unit${newStock === 1 ? '' : 's'} remaining.`, 'low-stock');
+        }
+      }
     } else {
       addProduct(productData);
+      // Toast for new product with stock issue
+      if (formCategory !== 'Service' && newStock !== null) {
+        if (newStock === 0) {
+          showToast(`${formName} is now out of stock.`, 'out-of-stock');
+        } else if (threshold !== null && newStock <= threshold) {
+          showToast(`${formName} has only ${newStock} unit${newStock === 1 ? '' : 's'} remaining.`, 'low-stock');
+        }
+      }
     }
     setIsProductModalOpen(false);
   };
@@ -122,8 +176,24 @@ export default function InventoryDashboard() {
     }
   };
 
+  // Badge label helper — maps status to display text
+  const getStatusLabel = (status) => {
+    switch (status) {
+      case 'Available': return 'IN STOCK';
+      case 'Low Stock': return 'LOW STOCK';
+      case 'Out of Stock': return 'OUT OF STOCK';
+      case 'Service': return 'SERVICE';
+      default: return status.toUpperCase();
+    }
+  };
+
+  // Compute alert counts from live products
+  const outOfStockProducts = products.filter(p => p.status === 'Out of Stock');
+  const lowStockProducts = products.filter(p => p.status === 'Low Stock');
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <StockToast toasts={toasts} onRemove={removeToast} />
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
         <div>
@@ -173,6 +243,25 @@ export default function InventoryDashboard() {
         ))}
       </div>
 
+      {/* Alert Banner */}
+      {outOfStockProducts.length > 0 && (
+        <div className="inv-alert-banner out-of-stock">
+          <AlertTriangle size={14} style={{ flexShrink: 0 }} />
+          <span>
+            <strong>{outOfStockProducts.length} product{outOfStockProducts.length > 1 ? 's are' : ' is'} out of stock.</strong>{' '}
+            Update inventory before creating quotations.
+          </span>
+        </div>
+      )}
+      {outOfStockProducts.length === 0 && lowStockProducts.length > 0 && (
+        <div className="inv-alert-banner low-stock">
+          <AlertTriangle size={14} style={{ flexShrink: 0 }} />
+          <span>
+            <strong>{lowStockProducts.length} product{lowStockProducts.length > 1 ? 's are' : ' is'} running low.</strong>
+          </span>
+        </div>
+      )}
+
       {/* Product Catalog Table */}
       <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
         <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border-subtle)', background: 'var(--bg-void)' }}>
@@ -219,9 +308,16 @@ export default function InventoryDashboard() {
                     <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{p.warranty}</span>
                   </td>
                   <td>
-                    <span className={`badge ${getStatusBadgeClass(p.status)}`}>
-                      {p.status.toUpperCase()}
-                    </span>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                      <span className={`badge ${getStatusBadgeClass(p.status)}`}>
+                        {getStatusLabel(p.status)}
+                      </span>
+                      {p.status === 'Low Stock' && p.stock !== null && (
+                        <span style={{ fontSize: 9, color: 'var(--warning)', fontFamily: 'var(--font-mono)', opacity: 0.8 }}>
+                          Only {p.stock} unit{p.stock === 1 ? '' : 's'} remaining
+                        </span>
+                      )}
+                    </div>
                   </td>
                   <td style={{ textAlign: 'right' }}>
                     <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
