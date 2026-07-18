@@ -9,6 +9,7 @@ import StatsDashboard from './components/StatsDashboard';
 import InteractionLogs from './components/InteractionLogs';
 import InventoryDashboard from './components/InventoryDashboard';
 import { useInventoryStore } from './lib/inventoryStore';
+import { createInsufficientStockNotification, getInventoryNotifications } from './lib/notificationStore';
 import { processMessage, getStats } from './services/api';
 
 const DEMO_MESSAGES = [
@@ -117,18 +118,40 @@ export default function App() {
 
         // Stock Deduction / Check tracking from process result
         if (result.intent === 'invoice_request' && result.generatedOutput?.items) {
+          const docNumber = result.generatedOutput?.docNumber || '';
           result.generatedOutput.items.forEach(item => {
             if (item.type === 'product' && item.id) {
-              recordUsage(item.id, item.quantity, "Invoice");
+              recordUsage(item.id, item.quantity, 'Invoice', docNumber);
             }
           });
         } else if (result.intent === 'quote_request' && result.generatedOutput?.items) {
           result.generatedOutput.items.forEach(item => {
             if (item.type === 'product' && item.id) {
-              recordStockCheck(item.id, item.quantity, "Quote");
+              recordStockCheck(item.id, item.quantity, 'Quote');
             }
           });
         }
+
+        // Fire insufficient_stock notifications for AI-detected stock issues
+        // Avoid duplicates by checking if a matching one was created in the last 60s
+        const stockNotes = result.generatedOutput?.stockNotes || [];
+        stockNotes.forEach(note => {
+          if (note.status === 'insufficient' || note.status === 'out_of_stock') {
+            const recentNotifs = getInventoryNotifications();
+            const alreadyFired = recentNotifs.some(n =>
+              n.type === 'insufficient_stock' &&
+              n.productId === note.productId &&
+              Date.now() - new Date(n.createdAt).getTime() < 60000
+            );
+            if (!alreadyFired) {
+              createInsufficientStockNotification(
+                { id: note.productId, name: note.product },
+                note.requestedQty,
+                note.availableQty
+              );
+            }
+          }
+        });
 
         setResponse(result);
         setPipelineSteps(result.pipelineSteps || []);

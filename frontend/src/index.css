@@ -1047,3 +1047,17 @@ body {
   color: var(--warning);
 }
 
+/* ─────────────────────────────────────────────────────────────
+   INVENTORY NOTIFICATION CENTER
+   ───────────────────────────────────────────────────────────── */
+@keyframes notifPanelIn {
+  from { opacity: 0; transform: translateY(-8px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0)    scale(1);    }
+}
+
+/* Show mobile backdrop on small screens */
+@media (max-width: 600px) {
+  .notif-backdrop { display: block !important; }
+}
+
+
