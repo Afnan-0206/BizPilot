@@ -370,12 +370,23 @@ function generateQuoteOrInvoice(context, type) {
   // ── Stock shortfall warnings ──────────────────────────────────────────────
   // Build one line per insufficient item; never block generation.
   const insufficientItems = stockNotes.filter(n => n.status === 'insufficient');
+  const outOfStockNotes   = stockNotes.filter(n => n.status === 'out_of_stock');
+
   const stockWarningSuffix = insufficientItems.length > 0
     ? '\n\n' + insufficientItems.map(n => {
         const shortfall = n.requestedQty - n.availableQty;
         return `⚠️ *Note:* Only ${n.availableQty} ${n.product}${n.availableQty === 1 ? '' : 's'} currently in stock — the remaining ${shortfall} will need to be back-ordered. We'll confirm the exact delivery timeline.`;
       }).join('\n')
     : '';
+
+  // Customer-facing warning for fully out-of-stock items (from context agent or derived here)
+  const outOfStockWarning = (context.stockWarningMessage)
+    ? '\n\n' + context.stockWarningMessage
+    : outOfStockNotes.length > 0
+      ? '\n\n' + outOfStockNotes.map(n =>
+          `⚠️ ${n.product} is currently unavailable. Please confirm restocking before sending this quotation.`
+        ).join('\n')
+      : '';
 
   // ── Stock status section ──────────────────────────────────────────────────
   const stockStatusLines = [];
@@ -384,20 +395,18 @@ function generateQuoteOrInvoice(context, type) {
     const note = stockNotes.find(n => n.productId === item.id);
     let statusText = 'Available';
     if (note) {
-      if (note.status === 'insufficient') {
-        if (note.availableQty === 0) {
-          statusText = 'Out of Stock (please update inventory before confirming)';
-        } else {
-          statusText = `Stock Warning (only ${note.availableQty} units available)`;
-        }
+      if (note.status === 'out_of_stock') {
+        statusText = 'Unavailable';
+      } else if (note.status === 'insufficient') {
+        statusText = `Requested: ${note.requestedQty} | Available: ${note.availableQty} | Insufficient stock`;
       } else if (note.status === 'low_after_order') {
         statusText = 'Low Stock';
       }
     } else if (item.stockQty !== undefined && item.stockQty !== null) {
       if (item.stockQty === 0) {
-        statusText = 'Out of Stock (please update inventory before confirming)';
+        statusText = 'Unavailable';
       } else if (item.stockQty < item.quantity) {
-        statusText = `Stock Warning (only ${item.stockQty} units available)`;
+        statusText = `Requested: ${item.quantity} | Available: ${item.stockQty} | Insufficient stock`;
       } else if (item.stockQty <= (item.lowStockThreshold || 5)) {
         statusText = 'Low Stock';
       }
@@ -405,8 +414,12 @@ function generateQuoteOrInvoice(context, type) {
     stockStatusLines.push(`${item.name}: ${statusText}`);
   });
 
+  // Only show "Stock Verified" footer when stock is genuinely available
+  const hasUnavailable = outOfStockNotes.length > 0 || stockStatusLines.some(l => l.includes('Unavailable') || l.includes('Insufficient'));
+  const stockVerifiedFooter = hasUnavailable ? '' : 'Stock Verified by Context Agent\n';
+
   const stockStatusBlock = stockStatusLines.length > 0
-    ? `\n*Stock Status:*\n${stockStatusLines.join('\n')}\nStock Verified by Context Agent\n`
+    ? `\n*Stock Status:*\n${stockStatusLines.join('\n')}\n${stockVerifiedFooter}`
     : '';
 
   const humanText = `📋 *${typeLabel} Generated Successfully*
@@ -429,7 +442,7 @@ ${stockStatusBlock}
 50% advance (₹${Math.round(financials.total / 2).toLocaleString('en-IN')}), balance after installation.
 
 *Warranty:*
-1-year warranty on products and workmanship. Valid for 30 days.${assumptionSuffix}${stockWarningSuffix}
+1-year warranty on products and workmanship. Valid for 30 days.${assumptionSuffix}${stockWarningSuffix}${outOfStockWarning}
 
 Verified by Review Agent
 

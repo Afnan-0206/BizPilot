@@ -177,8 +177,10 @@ function computeStockNotes(matchedItems, isInventoryDashboard = false) {
     const remaining = available - requested;
 
     let status;
-    if (requested > available) {
-      status = 'insufficient';
+    if (available === 0) {
+      status = 'out_of_stock';     // item is entirely absent from inventory
+    } else if (requested > available) {
+      status = 'insufficient';     // some stock but not enough
     } else if (remaining <= (item.lowStockThreshold || LOW_STOCK_THRESHOLD)) {
       status = 'low_after_order';
     } else {
@@ -264,10 +266,11 @@ async function runContextAgent(intakeOutput, originalMessage, inventoryCatalog =
     assumptionNote = "Assumed CCTV Dome Camera (most common) — customer didn't specify camera type.";
   }
 
-  // ── Stock Availability Check ───────────────────────────────────────────────
+  // ── Stock Availability Check ───────────────────────────────────
   const stockNotes = computeStockNotes(matchedItems, isInventoryDashboard);
   const insufficientItems = stockNotes.filter(n => n.status === 'insufficient');
-  const hasStockIssue = insufficientItems.length > 0;
+  const outOfStockItems   = stockNotes.filter(n => n.status === 'out_of_stock');
+  const hasStockIssue = insufficientItems.length > 0 || outOfStockItems.length > 0;
   const hasLowStock   = stockNotes.some(n => n.status === 'low_after_order');
 
   // ── Returning-Customer Personalization ─────────────────────────
@@ -308,7 +311,26 @@ async function runContextAgent(intakeOutput, originalMessage, inventoryCatalog =
   );
 
   const priceSource = isInventoryDashboard ? 'Inventory Dashboard' : 'Default Catalog';
-  const stockStatusText = hasStockIssue ? 'Insufficient' : hasLowStock ? 'Low Stock' : 'Available';
+
+  // ── Determine stock status text ─────────────────────────────────
+  let stockStatusText;
+  const outOfStockItemNames = outOfStockItems.map(n => n.product);
+  if (outOfStockItems.length > 0) {
+    stockStatusText = 'Unavailable';
+  } else if (hasStockIssue) {
+    stockStatusText = 'Insufficient';
+  } else if (hasLowStock) {
+    stockStatusText = 'Low Stock';
+  } else {
+    stockStatusText = 'Available';
+  }
+
+  // Build customer-facing warning for out-of-stock items
+  const stockWarningMessage = outOfStockItemNames.length > 0
+    ? outOfStockItemNames.map(name =>
+        `⚠️ ${name} is currently unavailable. Please confirm restocking before sending this quotation.`
+      ).join('\n')
+    : null;
 
   // ── Assemble enriched context ─────────────────────────────────────────────
   const enrichedContext = {
@@ -341,9 +363,12 @@ async function runContextAgent(intakeOutput, originalMessage, inventoryCatalog =
     stockNotes,
     hasStockIssue,
     hasLowStock,
+    outOfStockItems,
+    outOfStockItemNames,
+    stockWarningMessage,
     stockStatusText,
     priceSource,
-    stockVerified: true,
+    stockVerified: outOfStockItems.length === 0 && !hasStockIssue,
   };
 
   const loyaltyNote = loyaltyDiscount?.applicable

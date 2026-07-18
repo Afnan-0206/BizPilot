@@ -1,4 +1,5 @@
 import { RefreshCw, TrendingUp, Clock, ShieldCheck, Target, Activity, Timer, AlertTriangle, Package } from 'lucide-react';
+import { calculateProductStatus } from '../lib/inventoryStore';
 
 const INTENT_CFG = {
   quote_request:   { label: 'Quotations', color: 'var(--warning)',  emoji: '📋' },
@@ -52,7 +53,13 @@ export default function StatsDashboard({ stats, onRefresh }) {
 
   const totalProds = localProducts.length || 4;
   const totalStockUnits = localProducts.reduce((sum, p) => p.category === 'Service' || p.stock === null ? sum : sum + Number(p.stock), 0) || 29;
-  const lowStockCount = localProducts.filter(p => p.category !== 'Service' && p.stock !== null && p.stock <= (p.lowStockThreshold || 5)).length || 1;
+
+  // Use calculateProductStatus for accurate counts consistent with InventoryDashboard
+  const physicalProducts = localProducts.filter(p => p.category !== 'Service' && p.stock !== null);
+  const outOfStockCount = physicalProducts.filter(p => calculateProductStatus(p) === 'Out of Stock').length;
+  const lowStockCount   = physicalProducts.filter(p => calculateProductStatus(p) === 'Low Stock').length;
+  const inStockCount    = physicalProducts.filter(p => calculateProductStatus(p) === 'Available').length;
+
   const stockAwareQuotes = localHistory.filter(h => h.action && (h.action.includes('Checked') || h.action.includes('Deducted'))).length || 0;
 
   return (
@@ -180,7 +187,9 @@ export default function StatsDashboard({ stats, onRefresh }) {
           {[
             { label: 'TOTAL PRODUCTS', value: totalProds, color: 'var(--accent)' },
             { label: 'TOTAL STOCK UNITS', value: totalStockUnits, color: 'var(--success)' },
+            { label: 'IN STOCK', value: inStockCount, color: 'var(--success)' },
             { label: 'LOW STOCK ITEMS', value: lowStockCount, color: 'var(--warning)', highlight: lowStockCount > 0 },
+            { label: 'OUT OF STOCK', value: outOfStockCount, color: 'var(--danger)', highlight: outOfStockCount > 0 },
             { label: 'STOCK-AWARE QUOTES', value: stockAwareQuotes, color: '#C084FC' }
           ].map((kpi, idx) => (
             <div key={idx} className="stat-card" style={{
