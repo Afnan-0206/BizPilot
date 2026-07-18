@@ -1,4 +1,9 @@
 import { useState, useEffect } from 'react';
+import {
+  createStockChangeNotification,
+  createRestockNotification,
+  createSaleNotification,
+} from './notificationStore';
 
 // Default Product Catalog
 export const DEFAULT_PRODUCTS = [
@@ -222,9 +227,18 @@ export function useInventoryStore() {
         };
         
         // Log changes
-        if (updates.stock !== undefined && updates.stock !== p.stock) {
-          const diff = Number(updates.stock) - (p.stock || 0);
+        if (updates.stock !== undefined && Number(updates.stock) !== p.stock && updates.category !== 'Service' && p.stock !== null) {
+          const previousStock = p.stock || 0;
+          const currentStock  = Number(updates.stock);
+          const diff = currentStock - previousStock;
           addHistoryEntry(p.name, 'Stock Level Edited', (diff >= 0 ? '+' : '') + diff, 'Admin');
+          // Create structured notification
+          createStockChangeNotification(
+            { ...p, lowStockThreshold: updated.lowStockThreshold },
+            previousStock,
+            currentStock,
+            updates._reason || 'Manual correction'
+          );
         } else {
           addHistoryEntry(p.name, 'Product Info Updated', 'N/A', 'Admin');
         }
@@ -243,12 +257,14 @@ export function useInventoryStore() {
     }
   };
 
-  const addStock = (productId, quantity, updatedBy = "Admin") => {
+  const addStock = (productId, quantity, updatedBy = 'Admin', reason = 'New stock purchased') => {
     setProducts(prev => prev.map(p => {
       if (p.id === productId && p.category !== 'Service') {
-        const currentStock = p.stock || 0;
-        const newStock = currentStock + Number(quantity);
+        const previousStock = p.stock || 0;
+        const newStock = previousStock + Number(quantity);
         addHistoryEntry(p.name, 'Stock Added', '+' + quantity, updatedBy);
+        // Create purchase/restock notification
+        createRestockNotification(p, Number(quantity), previousStock, newStock, reason);
         return { ...p, stock: newStock };
       }
       return p;
@@ -262,11 +278,11 @@ export function useInventoryStore() {
     }
   };
 
-  const recordUsage = (productId, quantity, context = "Invoice") => {
+  const recordUsage = (productId, quantity, context = 'Invoice', documentNumber = '') => {
     const prod = products.find(p => p.id === productId);
     if (prod && prod.category !== 'Service') {
-      const currentStock = prod.stock || 0;
-      const newStock = Math.max(0, currentStock - quantity);
+      const previousStock = prod.stock || 0;
+      const newStock = Math.max(0, previousStock - quantity);
       
       setProducts(prev => prev.map(p => {
         if (p.id === productId) {
@@ -276,6 +292,11 @@ export function useInventoryStore() {
       }));
 
       addHistoryEntry(prod.name, 'Stock Deducted for ' + context, `-${quantity}`, 'BizPilot AI');
+
+      // Create sale notification (only for invoices, not quotes)
+      if (context === 'Invoice' || context === 'Order') {
+        createSaleNotification(prod, quantity, documentNumber, previousStock, newStock);
+      }
     }
   };
 

@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
-import { Package, Plus, Edit2, ArrowUpRight, History, Trash2, X, AlertTriangle, RefreshCw } from 'lucide-react';
+import { Package, Plus, Edit2, ArrowUpRight, History, Trash2, X, AlertTriangle, RefreshCw, Bell } from 'lucide-react';
 import { useInventoryStore } from '../lib/inventoryStore';
+import InventoryNotificationCenter from './InventoryNotificationCenter';
 
 // ── Minimal Toast Component ───────────────────────────────────
 function StockToast({ toasts, onRemove }) {
@@ -58,6 +59,7 @@ export default function InventoryDashboard() {
   const [isStockModalOpen, setIsStockModalOpen] = useState(false);
   const [stockProduct, setStockProduct] = useState(null);
   const [stockArrivedInput, setStockArrivedInput] = useState('');
+  const [stockReason, setStockReason] = useState('New stock purchased');
 
   // Form Fields State (for Add/Edit Modal)
   const [formName, setFormName] = useState('');
@@ -124,7 +126,13 @@ export default function InventoryDashboard() {
     };
 
     if (editingProduct) {
-      updateProduct(editingProduct.id, productData);
+      // Pass _reason for the notification system when stock changes
+      const prevStock = editingProduct.stock;
+      const stockChanged = formCategory !== 'Service' && newStock !== null && newStock !== prevStock;
+      updateProduct(editingProduct.id, {
+        ...productData,
+        _reason: stockChanged ? (newStock === 0 ? 'Stock set to zero' : newStock < (prevStock || 0) ? 'Manual correction' : 'Stock adjusted') : undefined,
+      });
       // Toast on stock state change
       if (formCategory !== 'Service' && newStock !== null) {
         if (newStock === 0) {
@@ -151,6 +159,7 @@ export default function InventoryDashboard() {
   const handleOpenStockArrived = (p) => {
     setStockProduct(p);
     setStockArrivedInput('');
+    setStockReason('New stock purchased');
     setIsStockModalOpen(true);
   };
 
@@ -161,7 +170,7 @@ export default function InventoryDashboard() {
     const qty = Number(stockArrivedInput);
     if (isNaN(qty) || qty <= 0) return;
 
-    addStock(stockProduct.id, qty, 'Admin');
+    addStock(stockProduct.id, qty, 'Admin', stockReason);
     setIsStockModalOpen(false);
   };
 
@@ -207,7 +216,8 @@ export default function InventoryDashboard() {
             MANAGE BUSINESS PRODUCTS, CATALOG PRICES, AND STOCK LEVEL
           </div>
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <InventoryNotificationCenter />
           <button className="btn-ghost" onClick={resetInventoryToDefaults}>
             <RefreshCw size={13} /> Reset Catalog
           </button>
@@ -541,6 +551,21 @@ export default function InventoryDashboard() {
                   onChange={e => setStockArrivedInput(e.target.value)}
                   autoFocus
                 />
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <label style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>REASON</label>
+                <select
+                  className="input-field"
+                  value={stockReason}
+                  onChange={e => setStockReason(e.target.value)}
+                  style={{ background: 'var(--bg-input)', color: 'var(--text-primary)' }}
+                >
+                  <option value="New stock purchased">New stock purchased</option>
+                  <option value="Returned product">Returned product</option>
+                  <option value="Manual correction">Manual correction</option>
+                  <option value="Other">Other</option>
+                </select>
               </div>
 
               <div style={{ display: 'flex', gap: 10, marginTop: 10 }}>
