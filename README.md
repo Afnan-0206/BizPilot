@@ -286,15 +286,6 @@ sequenceDiagram
 
 ---
 
-## Built at TakeOver Hackathon 2026
-
-BizPilot AI was built for the **TakeOver Hackathon** — a 24-hour product sprint focused on real-world impact for Indian SMEs.
-
-The problem is real. The people it's built for are real. Every design decision — the 5-agent pipeline structure, the rule-based fallback, the WhatsApp-first output, the multilingual replies, the ₹12,000 approval threshold — came from conversations with actual business owners, not assumptions.
-
----
-
-<div align="center">
 
 Made with ☕ and urgency in Bengaluru.
 
